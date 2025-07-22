@@ -1,0 +1,20 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and update with your values
+
+# Required: Echo registry ECR details (provided by Echo team)
+source_registry_account_id = "123456789012"  # Replace with actual account ID
+source_registry_region     = "us-east-1"     # Replace with actual region
+
+# Optional: Customize the repository prefix (default: "echo")
+# repository_prefix = "echo-registry"
+
+# Optional: Customize the cache rule name (default: "echo-registry-cache")
+# cache_rule_name = "production-cache"
+
+# Optional: Add custom tags
+# tags = {
+#   Environment = "production"
+#   Team        = "platform"
+#   Project     = "container-integration"
+#   CostCenter  = "engineering"
+# } 
