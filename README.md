@@ -1,77 +1,87 @@
 # Onboarding Providers
 
-Infrastructure-as-code templates to integrate AWS ECR with Echo registry service using pullthrough cache.
+Infrastructure-as-code templates to integrate container registries with Echo registry service.
 
-## 🚀 Quick Start
+## Available Integrations
 
-This repository provides ready-to-use templates for creating ECR pullthrough cache rules that connect your AWS ECR to Echo's private registry.
+### AWS ECR Pull-Through Cache
 
-### What is ECR Pullthrough Cache?
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **CloudFormation** | ✅ Ready | [`/echo-cloudformation-ecr-mirror`](./echo-cloudformation-ecr-mirror) |
+| **Terraform** | ✅ Ready | [`/echo-terraform-ecr-mirror`](./echo-terraform-ecr-mirror) |
+| **Pulumi** | ✅ Ready | [`/echo-pulumi-ecr-mirror`](./echo-pulumi-ecr-mirror) |
 
-ECR pullthrough cache allows you to automatically pull and cache container images from Echo's registry into your own ECR, improving performance and reducing data transfer costs.
+### Google Artifact Registry (GAR) Remote Repositories
 
-## 📁 Repository Structure
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **Terraform** | ✅ Ready | [`/echo-terraform-gar-mirror`](./echo-terraform-gar-mirror) |
+| **Pulumi** | ✅ Ready | [`/echo-pulumi-gar-mirror`](./echo-pulumi-gar-mirror) |
 
-```
-├── cloudformation/          # AWS CloudFormation template
-├── terraform/              # Terraform module
-├── pulumi/                 # Pulumi stack
-├── examples/               # Example configurations
-└── docs/                   # Additional documentation
-```
+### Harbor Proxy Cache
 
-## 🛠️ Choose Your Tool
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **Terraform** | ✅ Ready | [`/echo-terraform-harbor-mirror`](./echo-terraform-harbor-mirror) |
+| **Pulumi** | ✅ Ready | [`/echo-pulumi-harbor-mirror`](./echo-pulumi-harbor-mirror) |
 
-| Tool | Best For | Directory |
-|------|----------|-----------|
-| **CloudFormation** | AWS-native deployments, YAML/JSON preference | [`/cloudformation/ecr-pullthrough-cache`](./cloudformation/ecr-pullthrough-cache) |
-| **Terraform** | Multi-cloud environments, HCL syntax | [`/terraform/ecr-pullthrough-cache`](./terraform/ecr-pullthrough-cache) |
-| **Pulumi** | TypeScript/programming language preference | [`/pulumi/ecr-pullthrough-cache`](./pulumi/ecr-pullthrough-cache) |
+### JFrog Artifactory
 
-## 🔧 Prerequisites
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **Terraform** | ✅ Ready | [`/echo-terraform-jfrog-mirror`](./echo-terraform-jfrog-mirror) |
+| **Pulumi** | ✅ Ready | [`/echo-pulumi-jfrog-mirror`](./echo-pulumi-jfrog-mirror) |
 
-Before deploying, you'll need from Echo's team:
-- **Echo's AWS Account ID** (12-digit number)
-- **Echo's AWS Region** (typically us-east-1)
-- **Available repository names**
+### Sonatype Nexus Docker Proxy
 
-## 📚 Getting Started
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **Terraform** | ✅ Ready | [`/echo-terraform-nexus-mirror`](./echo-terraform-nexus-mirror) |
 
-1. **Choose your infrastructure tool** from the table above
-2. **Navigate to the tool's directory** for specific instructions
-3. **Deploy using the provided templates**
-4. **Test by pulling an image** through your new cache
+## Prerequisites
 
-### Example Deployment (Terraform)
+- Echo Registry access credentials (access key name and value)
+- Target registry/platform access (AWS, GCP, Harbor, JFrog, or Nexus)
+- Appropriate permissions to create resources in your environment
 
+## Getting Started
+
+1. Choose your integration type and IaC tool
+2. Navigate to the specific directory for detailed instructions  
+3. Deploy using the provided templates
+4. Test by pulling an Echo image through your configured integration
+
+### Quick Examples
+
+All modules support configurable resource naming and conditional creation.
+
+#### Terraform
 ```bash
-cd terraform/ecr-pullthrough-cache
+cd echo-terraform-<registry>-mirror
 terraform init
-terraform apply -var="source_registry_account_id=123456789012"
+terraform apply -var="required_var=value"
 ```
 
-## 📖 Documentation
+#### Pulumi  
+```typescript
+import { Component } from "@buildecho/echo-pulumi-<registry>-mirror";
 
-- [Detailed ECR Integration Guide](./docs/integrations/ecr.md)
-- [Example Configurations](./examples/)
+const integration = new Component("echo-integration", {
+    // required configuration
+});
+```
 
-## 🚧 Work in Progress
+#### CloudFormation (ECR only)
+```bash
+cd echo-cloudformation-ecr-mirror
+aws cloudformation deploy --template-file template.yaml --stack-name echo-mirror
+```
 
-The following integrations have preliminary code but are not yet fully implemented or documented:
-- Google Cloud Artifact Registry (GAR)
-- JFrog Artifactory
-- Sonatype Nexus
-- Harbor Registry
+## Support
 
-These directories contain work-in-progress code and should not be used in production.
+For questions or issues, check the tool-specific README in each directory or contact support@echohq.com.
 
-## 🤝 Support
+## License
 
-For questions or issues:
-1. Check the tool-specific README in each directory
-2. Review the [ECR Integration Guide](./docs/integrations/ecr.md)
-3. Contact Echo's integration team with your AWS account ID and any error messages
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+MIT License. See individual directories for module-specific licenses. 

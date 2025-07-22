@@ -1,0 +1,119 @@
+name: Upload CloudFormation Template to S3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'echo-cloudformation-ecr-mirror/template.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'echo-cloudformation-ecr-mirror/template.yaml'
+  workflow_dispatch:
+
+# These permissions are needed to interact with GitHub's OIDC Token endpoint
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+env:
+  AWS_REGION: us-east-1
+  TEMPLATE_FILE: echo-cloudformation-ecr-mirror/template.yaml
+  S3_KEY: ecr-pullthrough-cache.yaml
+
+jobs:
+  upload-to-s3:
+    name: Upload CloudFormation Template to S3
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.UPLOAD_CF_STACK_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Extract S3 bucket from URL
+        id: extract-bucket
+        run: |
+          # Extract bucket name from S3 URL
+          S3_URL="${{ vars.CF_STACKS_S3_URL }}"
+          
+          # Remove trailing slash if present
+          S3_URL="${S3_URL%/}"
+          
+          # Extract bucket name from different URL formats
+          if [[ "$S3_URL" =~ ^s3://([^/]+) ]]; then
+            BUCKET_NAME="${BASH_REMATCH[1]}"
+          elif [[ "$S3_URL" =~ ^https?://s3[.-]([^.]*\.)?amazonaws\.com/([^/]+) ]]; then
+            BUCKET_NAME="${BASH_REMATCH[2]}"
+          elif [[ "$S3_URL" =~ ^https?://([^.]+)\.s3[.-]([^.]*\.)?amazonaws\.com ]]; then
+            BUCKET_NAME="${BASH_REMATCH[1]}"
+          else
+            echo "Error: Could not extract bucket name from URL: $S3_URL"
+            exit 1
+          fi
+          
+          echo "Extracted bucket name: $BUCKET_NAME"
+          echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          
+      - name: Validate CloudFormation template
+        run: |
+          echo "Validating CloudFormation template..."
+          aws cloudformation validate-template \
+            --template-body file://${{ env.TEMPLATE_FILE }} \
+            --region ${{ env.AWS_REGION }}
+          
+      - name: Upload template to S3
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Uploading CloudFormation template to S3..."
+          aws s3 cp ${{ env.TEMPLATE_FILE }} \
+            s3://${{ steps.extract-bucket.outputs.bucket-name }}/${{ env.S3_KEY }} \
+            --region ${{ env.AWS_REGION }} \
+            --metadata "GitHubRepo=${{ github.repository }},GitHubRef=${{ github.ref }},GitHubSHA=${{ github.sha }}"
+          
+          echo "✅ Template uploaded successfully to: s3://${{ steps.extract-bucket.outputs.bucket-name }}/${{ env.S3_KEY }}"
+          
+      - name: Generate template URL
+        id: template-url
+        if: github.ref == 'refs/heads/main'
+        run: |
+          BUCKET_NAME="${{ steps.extract-bucket.outputs.bucket-name }}"
+          TEMPLATE_URL="https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${S3_KEY}"
+          echo "template-url=$TEMPLATE_URL" >> $GITHUB_OUTPUT
+          echo "📋 Template URL: $TEMPLATE_URL"
+          
+      - name: Create deployment summary
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # CloudFormation Template Upload Summary
+          
+          ## 📋 Template Details
+          - **File**: \`${{ env.TEMPLATE_FILE }}\`
+          - **S3 Key**: \`${{ env.S3_KEY }}\`
+          - **Bucket**: \`${{ steps.extract-bucket.outputs.bucket-name }}\`
+          - **Region**: \`${{ env.AWS_REGION }}\`
+          
+          ## 🔗 Access URLs
+          - **S3 URI**: \`s3://${{ steps.extract-bucket.outputs.bucket-name }}/${{ env.S3_KEY }}\`
+          - **HTTPS URL**: ${{ steps.template-url.outputs.template-url }}
+          
+          ## 📝 Deployment Information
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Commit**: ${{ github.sha }}
+          - **Workflow Run**: ${{ github.run_id }}
+          
+          ## 🚀 Quick Deploy
+          You can use this template URL directly in CloudFormation:
+          \`\`\`
+          ${{ steps.template-url.outputs.template-url }}
+          \`\`\`
+          EOF 

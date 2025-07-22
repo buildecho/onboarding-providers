@@ -1,0 +1,12 @@
+{
+  "name": "echo-pulumi-jfrog-mirror",
+  "description": "Pulumi component for integrating JFrog Artifactory with Echo registry",
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/artifactory": "^8.0.0",
+    "@pulumi/pulumi": "^3.113.0"
+  }
+}

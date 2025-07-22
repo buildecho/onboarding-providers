@@ -1,0 +1,13 @@
+{
+  "name": "echo-pulumi-ecr-mirror",
+  "description": "Pulumi component for setting up AWS ECR pull-through cache to integrate with Echo registry",
+  "homepage": "https://github.com/buildecho/onboarding-providers#readme",
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^6.0.0",
+    "@pulumi/pulumi": "^3.113.0"
+  }
+}

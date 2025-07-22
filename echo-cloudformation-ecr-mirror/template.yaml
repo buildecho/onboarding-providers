@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECR pull through cache rule for pulling secure images from Echo'
+
+Parameters:
+  EchoRegistryAccountId:
+    Type: String
+    Description: 'The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform'
+    AllowedPattern: '^[0-9]{12}$'
+    ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
+  
+  EchoRegistryRegion:
+    Type: String
+    Description: 'The AWS region of the source ECR registry (Echo registry) - Get this from Echo platform'
+    Default: 'us-east-1'
+    AllowedValues:
+      - us-east-1
+  
+  CacheNamespacePrefix:
+    Type: String
+    Description: 'Prefix for cached repository names - This will be the prefix in your registry. for example /echo/node:latest'
+    Default: 'echo'
+  
+  IAMRoleName:
+    Type: String
+    Description: 'Name for the IAM role used by the pullthrough cache'
+    Default: 'echo-mirror-role'
+  
+  IAMPolicyName:
+    Type: String
+    Description: 'Name for the IAM policy attached to the role'
+    Default: 'echo-mirror-policy'
+  
+
+
+Resources:
+  ECRPullthroughCacheRule:
+    Type: AWS::ECR::PullThroughCacheRule
+    Properties:
+      EcrRepositoryPrefix: !Ref CacheNamespacePrefix
+      UpstreamRegistry: 'ecr'
+      UpstreamRegistryUrl: !Sub '${EchoRegistryAccountId}.dkr.ecr.${EchoRegistryRegion}.amazonaws.com'
+      UpstreamRepositoryPrefix: 'ROOT'
+      # Use CustomRoleArn for ECR private-to-private pullthrough cache
+      CustomRoleArn: !GetAtt ECRAccessRole.Arn
+
+  # IAM Role for ECR access
+  ECRAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref IAMRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pullthroughcache.ecr.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Ref IAMPolicyName
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchImportUpstreamImage
+                  - ecr:GetImageCopyStatus
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: '*'
+
+Outputs:
+  AccessRoleArn:
+    Description: 'ARN of the ECR access role'
+    Value: !GetAtt ECRAccessRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-Access-Role-Arn'
+  
+  UsageInstructions:
+    Description: 'Usage instructions for pulling via the mirror'
+    Value: !Sub 'docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/<image>:<tag>'
