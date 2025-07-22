@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+bin/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Exclude TypeScript files in root (they are compiled)
+/index.js
+/index.d.ts
+/index.js.map
+/index.d.ts.map
+
+# Pulumi
+Pulumi.*.yaml
+.pulumi/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.swp 

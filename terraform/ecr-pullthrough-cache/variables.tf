@@ -1,3 +1,9 @@
+variable "create" {
+  type        = bool
+  description = "Whether to provision the resources under this module"
+  default     = true
+}
+
 variable "source_registry_account_id" {
   description = "The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform"
   type        = string

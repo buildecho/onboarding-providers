@@ -1,0 +1,3 @@
+name: echo-nexus-integration
+runtime: nodejs
+description: Sonatype Nexus integration with Echo registry for Docker proxy repository 

@@ -12,7 +12,7 @@ This Terraform module creates an ECR pullthrough cache rule to integrate with Ec
 
 ```hcl
 module "ecr_pullthrough_cache" {
-  source = "path/to/terraform/ecr-pullthrough-cache"
+  source = "github.com/buildecho/onboarding-providers/terraform/ecr-pullthrough-cache"
   
   source_registry_account_id = "123456789012"  # Replace with Echo's account ID
   source_registry_region     = "us-east-1"     # Echo's region
@@ -30,6 +30,7 @@ terraform apply
 
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
+| `create` | Whether to provision the resources under this module | ❌ | `true` |
 | `source_registry_account_id` | Echo's AWS account ID (12 digits) | ✅ | - |
 | `source_registry_region` | Echo's AWS region | ❌ | `us-east-1` |
 | `repository_prefix` | Prefix for cached repository names | ❌ | `echo` |
@@ -73,6 +74,19 @@ module "ecr_pullthrough_cache" {
     Environment = "production"
     ManagedBy   = "terraform"
   }
+}
+```
+
+### Conditional Creation
+
+```hcl
+module "ecr_pullthrough_cache" {
+  source = "./terraform/ecr-pullthrough-cache"
+  
+  create = var.enable_echo_integration  # Conditionally create resources
+  
+  source_registry_account_id = "123456789012"
+  source_registry_region     = "us-east-1"
 }
 ```
 

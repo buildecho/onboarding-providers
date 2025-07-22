@@ -1,3 +1,9 @@
+variable "create" {
+  type        = bool
+  description = "Whether to provision the resources under this module"
+  default     = true
+}
+
 variable "project_id" {
   description = "The GCP project ID where the repository will be created"
   type        = string
@@ -21,6 +27,7 @@ variable "location" {
 variable "repository_id" {
   description = "The ID of the repository"
   type        = string
+  default     = "echo"
 
   validation {
     condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.repository_id))
@@ -28,44 +35,38 @@ variable "repository_id" {
   }
 }
 
-variable "service_name" {
-  description = "Name of the service for identification"
+variable "description" {
+  description = "Description for the Artifact Registry repository"
   type        = string
-  default     = "Echo Registry"
+  default     = "Remote repository for Echo Registry integration"
 }
 
-variable "remote_registry_type" {
-  description = "Type of remote registry (public or private)"
+variable "echo_registry_url" {
+  description = "URL of the Echo registry"
   type        = string
-  default     = "private"
+  default     = "https://reg.echohq.com"
 
   validation {
-    condition     = contains(["public", "private"], var.remote_registry_type)
-    error_message = "Remote registry type must be either 'public' or 'private'."
+    condition     = can(regex("^https?://", var.echo_registry_url))
+    error_message = "Echo registry URL must be a valid HTTP or HTTPS URL."
   }
 }
 
-variable "remote_registry_url" {
-  description = "URL of the remote registry"
+variable "echo_access_key_name" {
+  description = "The name of the Echo access key (used as username for authentication)"
   type        = string
-
-  validation {
-    condition     = can(regex("^https?://", var.remote_registry_url))
-    error_message = "Remote registry URL must be a valid HTTP or HTTPS URL."
-  }
 }
 
-variable "registry_username" {
-  description = "Username for authenticating with the remote registry (required for private registries)"
+variable "echo_access_key_value" {
+  description = "The value of the Echo access key (used as password for authentication)"
   type        = string
-  default     = ""
-}
-
-variable "registry_password" {
-  description = "Password for authenticating with the remote registry (required for private registries)"
-  type        = string
-  default     = ""
   sensitive   = true
+}
+
+variable "echo_access_key_secret_id" {
+  description = "Custom secret ID for the Echo access key. If not provided, defaults to '{repository_id}-echo-access-key'"
+  type        = string
+  default     = ""
 }
 
 variable "reader_members" {

@@ -1,0 +1,34 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+.gitignore
+
+# Examples
+examples/
+
+# Pulumi files
+Pulumi.yaml
+Pulumi.*.yaml
+
+# Development files
+*.log
+.DS_Store
+node_modules/
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Keep dist folder
+!dist/ 

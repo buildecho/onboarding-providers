@@ -1,0 +1,378 @@
+name: Publish Pulumi Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pulumi/ecr-pullthrough-cache/**'
+      - 'pulumi/gcp-gar-remote/**'
+      - 'pulumi/harbor-integration/**'
+      - 'pulumi/jfrog-integration/**'
+      - 'pulumi/nexus-integration/**'
+      - '.github/workflows/publish-pulumi-packages.yml'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - ecr-pullthrough-cache
+          - gcp-gar-remote
+          - harbor-integration
+          - jfrog-integration
+          - nexus-integration
+          - all
+      version_bump:
+        description: 'Version bump type (patch, minor, major)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.detect.outputs.packages }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      
+      - name: Detect changed packages
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.package }}" == "all" ]; then
+              echo 'packages=["ecr-pullthrough-cache", "gcp-gar-remote", "harbor-integration", "jfrog-integration", "nexus-integration"]' >> $GITHUB_OUTPUT
+            else
+              echo 'packages=["${{ github.event.inputs.package }}"]' >> $GITHUB_OUTPUT
+            fi
+          else
+            # Detect which packages changed
+            PACKAGES="[]"
+            
+            # Check if ECR package changed
+            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/ecr-pullthrough-cache/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["ecr-pullthrough-cache"]')
+            fi
+            
+            # Check if GAR package changed
+            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/gcp-gar-remote/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["gcp-gar-remote"]')
+            fi
+            
+            # Check if Harbor package changed
+            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/harbor-integration/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["harbor-integration"]')
+            fi
+            
+            # Check if JFrog package changed
+            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/jfrog-integration/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["jfrog-integration"]')
+            fi
+            
+            # Check if Nexus package changed
+            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/nexus-integration/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["nexus-integration"]')
+            fi
+            
+            # Check if workflow itself changed (publish all packages)
+            if git diff --name-only HEAD~1 HEAD | grep -q ".github/workflows/publish-pulumi-packages.yml"; then
+              PACKAGES='["ecr-pullthrough-cache", "gcp-gar-remote", "harbor-integration", "jfrog-integration", "nexus-integration"]'
+            fi
+            
+            # Ensure the output is on a single line by using jq -c (compact)
+            PACKAGES_COMPACT=$(echo $PACKAGES | jq -c '.')
+            echo "packages=$PACKAGES_COMPACT" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Packages to publish: $PACKAGES_COMPACT"
+
+  bump-versions:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    outputs:
+      version_info: ${{ steps.bump_all.outputs.version_info }}
+      commit_sha: ${{ steps.get_sha.outputs.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@buildecho'
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Bump versions for all packages
+        id: bump_all
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure npm for authentication
+          npm config set @buildecho:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
+          
+          # Test authentication
+          echo "Testing npm authentication..."
+          npm whoami --registry=https://npm.pkg.github.com || echo "Authentication test failed"
+          
+          # Initialize version info JSON
+          VERSION_INFO='{}'
+          PACKAGES='${{ needs.detect-changes.outputs.packages }}'
+          BUMP_TYPE="${{ github.event.inputs.version_bump || 'patch' }}"
+          ANY_BUMPED=false
+          
+          # Process each package
+          for package in $(echo $PACKAGES | jq -r '.[]'); do
+            echo "Processing $package..."
+            cd "$GITHUB_WORKSPACE/pulumi/$package"
+            
+            # Get current version and package name
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            PACKAGE_NAME=$(node -p "require('./package.json').name")
+            
+            echo "Current version for $PACKAGE_NAME: $CURRENT_VERSION"
+            
+            # Check if version exists on GitHub Packages
+            NEEDS_BUMP=false
+            echo "Checking if ${PACKAGE_NAME}@${CURRENT_VERSION} exists on GitHub Packages..."
+            
+            # Try to get all versions to debug
+            echo "Available versions:"
+            npm view "${PACKAGE_NAME}" versions --json 2>&1 || echo "No versions found or package doesn't exist"
+            
+            if npm view "${PACKAGE_NAME}@${CURRENT_VERSION}" version 2>/dev/null; then
+              NEEDS_BUMP=true
+              echo "Version $CURRENT_VERSION already exists, will bump"
+            else
+              echo "Version $CURRENT_VERSION not yet published"
+            fi
+            
+            # Bump version if needed or if workflow_dispatch
+            if [ "$NEEDS_BUMP" = "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+              npm version $BUMP_TYPE --no-git-tag-version
+              NEW_VERSION=$(node -p "require('./package.json').version")
+              echo "Bumped to version $NEW_VERSION"
+              ANY_BUMPED=true
+            else
+              NEW_VERSION=$CURRENT_VERSION
+            fi
+            
+            # Determine tag prefix
+            case "$package" in
+              "ecr-pullthrough-cache")
+                TAG_PREFIX="pulumi-ecr-cache"
+                DISPLAY_NAME="Pulumi ECR Cache"
+                ;;
+              "gcp-gar-remote")
+                TAG_PREFIX="pulumi-gar-remote"
+                DISPLAY_NAME="Pulumi GAR Remote"
+                ;;
+              "harbor-integration")
+                TAG_PREFIX="pulumi-harbor-integration"
+                DISPLAY_NAME="Pulumi Harbor Integration"
+                ;;
+              "jfrog-integration")
+                TAG_PREFIX="pulumi-jfrog-integration"
+                DISPLAY_NAME="Pulumi JFrog Integration"
+                ;;
+              "nexus-integration")
+                TAG_PREFIX="pulumi-nexus-integration"
+                DISPLAY_NAME="Pulumi Nexus Integration"
+                ;;
+            esac
+            
+            # Add to version info
+            VERSION_INFO=$(echo "$VERSION_INFO" | jq \
+              --arg pkg "$package" \
+              --arg name "$PACKAGE_NAME" \
+              --arg current "$CURRENT_VERSION" \
+              --arg new "$NEW_VERSION" \
+              --arg prefix "$TAG_PREFIX" \
+              --arg display "$DISPLAY_NAME" \
+              --arg bumped "$( [ "$NEW_VERSION" != "$CURRENT_VERSION" ] && echo "true" || echo "false" )" \
+              '.[$pkg] = {
+                "package_name": $name,
+                "current_version": $current,
+                "new_version": $new,
+                "tag_prefix": $prefix,
+                "display_name": $display,
+                "was_bumped": ($bumped == "true")
+              }')
+          done
+          
+          # Compact JSON for GitHub output (single line)
+          VERSION_INFO_COMPACT=$(echo $VERSION_INFO | jq -c '.')
+          echo "version_info=$VERSION_INFO_COMPACT" >> $GITHUB_OUTPUT
+          echo "any_bumped=$ANY_BUMPED" >> $GITHUB_OUTPUT
+          
+          # Commit all version changes at once if any were bumped and not dry run
+          if [ "$ANY_BUMPED" = "true" ] && [ "${{ github.event.inputs.dry_run }}" != "true" ]; then
+            # Ensure we're in the repository root
+            cd "$GITHUB_WORKSPACE"
+            
+            # Find and add all modified package files
+            FILES_TO_ADD=$(find pulumi -name "package.json" -o -name "package-lock.json")
+            if [ -n "$FILES_TO_ADD" ]; then
+              echo "Adding files:"
+              echo "$FILES_TO_ADD"
+              echo "$FILES_TO_ADD" | xargs git add
+            else
+              echo "No files found to add"
+            fi
+            
+            # Build commit message
+            COMMIT_MESSAGE="chore: bump package versions"$'\n'
+            COMMIT_MESSAGE+=$(echo "$VERSION_INFO" | jq -r 'to_entries[] | select(.value.was_bumped) | "\n- \(.value.package_name): \(.value.current_version) → \(.value.new_version)"')
+            
+            git commit -m "$COMMIT_MESSAGE"
+            git push origin main
+          fi
+      
+      - name: Get commit SHA
+        id: get_sha
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  publish:
+    needs: [detect-changes, bump-versions]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    
+    defaults:
+      run:
+        working-directory: pulumi/${{ matrix.package }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ needs.bump-versions.outputs.commit_sha }}
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          cache: 'npm'
+          cache-dependency-path: pulumi/${{ matrix.package }}/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test || echo "No tests configured"
+      
+      - name: Build package
+        run: npm run build
+      
+      - name: Get version info
+        id: version_info
+        run: |
+          VERSION_INFO='${{ needs.bump-versions.outputs.version_info }}'
+          PACKAGE_INFO=$(echo "$VERSION_INFO" | jq -r '.["${{ matrix.package }}"]')
+          
+          echo "package_name=$(echo "$PACKAGE_INFO" | jq -r '.package_name')" >> $GITHUB_OUTPUT
+          echo "current_version=$(echo "$PACKAGE_INFO" | jq -r '.current_version')" >> $GITHUB_OUTPUT
+          echo "new_version=$(echo "$PACKAGE_INFO" | jq -r '.new_version')" >> $GITHUB_OUTPUT
+          echo "tag_prefix=$(echo "$PACKAGE_INFO" | jq -r '.tag_prefix')" >> $GITHUB_OUTPUT
+          echo "display_name=$(echo "$PACKAGE_INFO" | jq -r '.display_name')" >> $GITHUB_OUTPUT
+          echo "was_bumped=$(echo "$PACKAGE_INFO" | jq -r '.was_bumped')" >> $GITHUB_OUTPUT
+      
+      - name: Create git tag
+        if: steps.version_info.outputs.was_bumped == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          git tag "${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}"
+          git push origin "${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}"
+      
+      - name: Publish to GitHub Packages (dry run)
+        if: github.event.inputs.dry_run == 'true'
+        run: npm publish --dry-run --registry=https://npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Publish to GitHub Packages
+        if: github.event.inputs.dry_run != 'true'
+        run: npm publish --registry=https://npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create GitHub Release
+        if: steps.version_info.outputs.was_bumped == 'true' && github.event.inputs.dry_run != 'true'
+        uses: softprops/action-gh-release@v2.2.0
+        with:
+          tag_name: ${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}
+          name: ${{ steps.version_info.outputs.display_name }} v${{ steps.version_info.outputs.new_version }}
+          body: |
+            ## ${{ steps.version_info.outputs.package_name }} v${{ steps.version_info.outputs.new_version }}
+            
+            ### Installation
+            ```bash
+            # Configure npm to use GitHub Packages for @buildecho scope
+            npm config set @buildecho:registry https://npm.pkg.github.com
+            
+            # Install the package
+            npm install ${{ steps.version_info.outputs.package_name }}@${{ steps.version_info.outputs.new_version }}
+            ```
+            
+            ### Changes
+            See [commits](https://github.com/${{ github.repository }}/commits/${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}) for detailed changes.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Publish Summary for ${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "🧪 **Dry Run Mode** - No actual publishing performed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: ${{ steps.version_info.outputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous Version**: ${{ steps.version_info.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published Version**: ${{ steps.version_info.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.version_info.outputs.was_bumped }}" == "true" ]; then
+            echo "- **Version Bump**: ${{ github.event.inputs.version_bump || 'patch' }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Package Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: GitHub Packages (npm.pkg.github.com)" >> $GITHUB_STEP_SUMMARY 

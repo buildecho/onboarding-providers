@@ -2,6 +2,8 @@
 
 This CloudFormation template creates an ECR pullthrough cache rule to integrate with Echo registry.
 
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=echo-pull-through-cache&templateURL=https://echohq-cloudformation-stacks.s3.us-east-1.amazonaws.com/ecr-pullthrough-cache.yaml)
+
 ## Prerequisites
 
 - Echo's AWS Account ID (provided by Echo team)
@@ -18,6 +20,19 @@ This CloudFormation template creates an ECR pullthrough cache rule to integrate 
 | `CacheRuleName` | Name for the pullthrough cache rule | ❌ | echo-registry-cache |
 
 ## Quick Deploy
+
+### Option 1: Deploy from S3 URL
+
+```bash
+aws cloudformation create-stack \
+  --stack-name echo-registry-ecr-cache \
+  --template-url https://echohq-cloudformation-stacks.s3.us-east-1.amazonaws.com/ecr-pullthrough-cache.yaml \
+  --parameters ParameterKey=SourceRegistryAccountId,ParameterValue=ECHO_ACCOUNT_ID \
+               ParameterKey=SourceRegistryRegion,ParameterValue=us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+### Option 2: Deploy from Local File
 
 ```bash
 aws cloudformation create-stack \
