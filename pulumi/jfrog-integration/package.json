@@ -1,6 +1,6 @@
 {
   "name": "@buildecho/pulumi-onboarding-providers-jfrog-integration",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Pulumi component for integrating JFrog Artifactory with Echo registry",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

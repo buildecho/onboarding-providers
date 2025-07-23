@@ -1,6 +1,6 @@
 {
   "name": "@buildecho/pulumi-onboarding-providers-gcp-gar-remote",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Pulumi component for setting up GCP Artifact Registry remote repository with Echo registry",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,6 @@
 {
   "name": "@buildecho/pulumi-onboarding-providers-nexus-integration",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pulumi component for integrating Sonatype Nexus with Echo registry as a Docker proxy repository",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

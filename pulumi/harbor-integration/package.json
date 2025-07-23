@@ -1,6 +1,6 @@
 {
   "name": "@buildecho/pulumi-onboarding-providers-harbor-integration",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Pulumi component for integrating Harbor with Echo registry as a proxy cache",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
