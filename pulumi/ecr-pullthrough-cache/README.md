@@ -37,7 +37,6 @@ import { EcrPullThroughCache } from "@buildecho/pulumi-onboarding-providers-ecr-
 
 const cache = new EcrPullThroughCache("echo-cache", {
     sourceRegistryAccountId: "123456789012", // Echo's account ID
-    repositoryPrefix: "echo"
 });
 
 export const cachePrefix = cache.cachePrefix;
