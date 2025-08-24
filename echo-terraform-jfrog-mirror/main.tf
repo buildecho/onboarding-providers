@@ -1,18 +1,10 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    artifactory = {
-      source  = "jfrog/artifactory"
-      version = ">= 12.0.0"
-    }
-  }
-}
+# Terraform version requirements moved to versions.tf
 
 # Docker Remote Repository for Echo registry
 resource "artifactory_remote_docker_repository" "echo_remote" {
   count = var.create ? 1 : 0
 
-  key         = var.repository_key
+  key         = var.repository_name
   url         = var.echo_registry_url
   username    = var.echo_access_key_name
   password    = var.echo_access_key_value

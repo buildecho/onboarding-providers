@@ -17,18 +17,18 @@ Parameters:
   
   CacheNamespacePrefix:
     Type: String
-    Description: 'Prefix for cached repository names - This will be the prefix in your registry'
+    Description: 'Prefix for cached repository names - This will be the prefix in your registry. for example /echo/node:latest'
     Default: 'echo'
   
   IAMRoleName:
     Type: String
     Description: 'Name for the IAM role used by the pullthrough cache'
-    Default: 'echo-ecr-mirroring-role'
+    Default: 'echo-mirror-role'
   
   IAMPolicyName:
     Type: String
     Description: 'Name for the IAM policy attached to the role'
-    Default: 'echo-ecr-mirroring-policy'
+    Default: 'echo-mirror-policy'
   
   ResourceNameSuffix:
     Type: String
@@ -95,24 +95,24 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-Repository-Prefix'
   
-  UpstreamRegistryUrl:
-    Description: 'Echo registry URL'
-    Value: !Sub '${EchoRegistryAccountId}.dkr.ecr.${EchoRegistryRegion}.amazonaws.com'
-    Export:
-      Name: !Sub '${AWS::StackName}-Upstream-Registry-Url'
-  
   AccessRoleArn:
     Description: 'ARN of the ECR access role'
     Value: !GetAtt ECRAccessRole.Arn
     Export:
       Name: !Sub '${AWS::StackName}-Access-Role-Arn'
   
-  UsageInstructions:
-    Description: 'Instructions for using the pullthrough cache'
-    Value: !Sub |
-      To pull images through this cache, use:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/[REPOSITORY_NAME]:[TAG]
-      
-      Example:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/static:latest
-      
+  MirrorUrl:
+    Description: 'Base URL of the mirror in your account'
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}'
+    Export:
+      Name: !Sub '${AWS::StackName}-Mirror-Url'
+
+  CacheRuleId:
+    Description: 'Identifier of the ECR PullThroughCacheRule (Ref value)'
+    Value: !Ref ECRPullthroughCacheRule
+    Export:
+      Name: !Sub '${AWS::StackName}-Cache-Rule-Id'
+
+  UsageInstruction:
+    Description: 'Single-line usage instruction for pulling via the mirror'
+    Value: !Sub 'docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/<image>:<tag>'

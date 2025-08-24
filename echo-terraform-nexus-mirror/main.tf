@@ -1,12 +1,4 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    nexus = {
-      source  = "datadrivers/nexus"
-      version = ">= 2.0.0"
-    }
-  }
-}
+# Terraform version requirements moved to versions.tf
 
 # Docker proxy repository for Echo
 resource "nexus_repository_docker_proxy" "echo_proxy" {

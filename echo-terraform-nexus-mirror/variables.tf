@@ -27,7 +27,7 @@ variable "echo_access_key_value" {
 variable "repository_name" {
   type        = string
   description = "Name of the Docker proxy repository"
-  default     = "echo-docker-proxy"
+  default     = "echo-mirror"
 
   validation {
     condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.repository_name))

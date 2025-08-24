@@ -4,59 +4,59 @@ variable "create" {
   default     = true
 }
 
-variable "source_registry_account_id" {
-  description = "The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform"
+variable "echo_registry_account_id" {
+  description = "The AWS account ID of the Echo ECR registry (12 digits)"
   type        = string
 
   validation {
-    condition     = can(regex("^[0-9]{12}$", var.source_registry_account_id))
-    error_message = "Source registry account ID must be a valid 12-digit AWS account ID."
+    condition     = can(regex("^[0-9]{12}$", var.echo_registry_account_id))
+    error_message = "Echo registry account ID must be a valid 12-digit AWS account ID."
   }
 }
 
-variable "source_registry_region" {
-  description = "The AWS region of the source ECR registry (Echo registry) - Get this from Echo platform"
+variable "echo_registry_region" {
+  description = "The AWS region of the Echo ECR registry"
   type        = string
   default     = "us-east-1"
 
   validation {
     condition = contains([
       "us-east-1"
-    ], var.source_registry_region)
-    error_message = "Source registry region must be us-east-1."
+    ], var.echo_registry_region)
+    error_message = "Echo registry region must be us-east-1."
   }
 }
 
-variable "repository_prefix" {
-  description = "Optional prefix for cached repository names - This will be the prefix in your registry"
+variable "cache_namespace" {
+  description = "Namespace/prefix for cached repositories in your ECR"
   type        = string
   default     = "echo"
 
   validation {
-    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.repository_prefix))
-    error_message = "Repository prefix must contain only lowercase letters, numbers, periods, hyphens, and underscores."
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.cache_namespace))
+    error_message = "Cache namespace must contain only lowercase letters, numbers, periods, hyphens, and underscores."
   }
 }
 
-variable "resource_prefix" {
+variable "role_name" {
   description = "Prefix for all resource names created by this module"
   type        = string
-  default     = "echo-mirror"
+  default     = "echo-ecr-mirror-role"
 
   validation {
-    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.resource_prefix))
-    error_message = "Resource prefix must contain only lowercase letters, numbers, periods, hyphens, and underscores."
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.role_name))
+    error_message = "Role name must contain only lowercase letters, numbers, periods, hyphens, and underscores."
   }
 }
 
-variable "cache_rule_name" {
-  description = "Name for the pullthrough cache rule. If not provided, will use resource_prefix with '-ecr-cache' suffix"
+variable "policy_name" {
+  description = "Name for the IAM policy that will be created."
   type        = string
-  default     = ""
+  default     = "echo-ecr-mirror-policy"
 
   validation {
-    condition     = var.cache_rule_name == "" || can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.cache_rule_name))
-    error_message = "Cache rule name must contain only lowercase letters, numbers, periods, hyphens, and underscores."
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.policy_name))
+    error_message = "Policy name must contain only lowercase letters, numbers, periods, hyphens, and underscores."
   }
 }
 

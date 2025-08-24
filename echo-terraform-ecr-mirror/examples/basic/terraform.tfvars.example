@@ -1,14 +1,14 @@
-# Example Terraform variables file for ECR pull-through cache
+# Example Terraform variables file for Echo ECR pull-through cache
 # Copy this file to terraform.tfvars and fill in your actual values
 
 aws_region                 = "us-east-1"
-cache_rule_name            = "echo-cache"
-repository_prefix          = "echo"
-source_registry_account_id = "123456789012"  # Replace with actual Echo registry AWS account ID
-source_registry_region     = "us-east-1"
+echo_registry_account_id   = "123456789012"  # Replace with actual Echo ECR account ID
+echo_registry_region       = "us-east-1"
+cache_namespace            = "echo"
 
 tags = {
   Environment = "production"
-  Project     = "echo-integration"
+  Purpose     = "echo-registry-integration"
+  Component   = "pullthrough-cache"
   ManagedBy   = "terraform"
 } 

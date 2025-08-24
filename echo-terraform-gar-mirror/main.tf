@@ -1,23 +1,10 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 4.0"
-    }
-  }
-}
-
-locals {
-  repository_id = var.repository_id != "" ? var.repository_id : "${var.resource_prefix}-gar-repo"
-  secret_id     = var.echo_access_key_secret_id != "" ? var.echo_access_key_secret_id : "${var.resource_prefix}-secret"
-}
+# Terraform version requirements moved to versions.tf
 
 # Secret Manager for Echo access key
 resource "google_secret_manager_secret" "echo_access_key" {
   count = var.create ? 1 : 0
 
-  secret_id = local.secret_id
+  secret_id = var.echo_access_key_secret_name != "" ? var.echo_access_key_secret_name : "${var.repository_name}-echo-access-key"
 
   replication {
     auto {}
@@ -41,7 +28,7 @@ resource "google_artifact_registry_repository" "echo_remote_repo" {
 
   project       = var.project_id
   location      = var.location
-  repository_id = local.repository_id
+  repository_id = var.repository_name
   description   = var.description != "" ? var.description : "Remote repository for Echo Registry integration"
   format        = "DOCKER"
   mode          = "REMOTE_REPOSITORY"

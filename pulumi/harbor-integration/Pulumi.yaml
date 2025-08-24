@@ -1,3 +1,0 @@
-name: echo-harbor-integration
-runtime: nodejs
-description: Echo Harbor Integration - Configure Harbor to use Echo Registry as a proxy cache 

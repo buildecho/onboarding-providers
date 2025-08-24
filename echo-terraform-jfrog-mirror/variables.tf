@@ -15,10 +15,10 @@ variable "artifactory_access_token" {
   sensitive   = true
 }
 
-variable "repository_key" {
+variable "repository_name" {
   type        = string
-  description = "The key (name) for the remote repository in Artifactory"
-  default     = "echo"
+  description = "The name for the remote repository in Artifactory"
+  default     = "echo-mirror"
 }
 
 variable "echo_registry_url" {

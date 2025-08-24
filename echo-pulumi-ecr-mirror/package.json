@@ -1,7 +1,7 @@
 {
-  "name": "@buildecho/echo-pulumi-ecr-mirror",
-  "version": "1.0.6",
-  "description": "Pulumi component for setting up ECR pull-through cache with Echo registry",
+  "name": "@echo/pulumi-ecr-pullthrough-cache",
+  "version": "1.0.0",
+  "description": "Pulumi component for setting up AWS ECR pull-through cache to integrate with Echo registry",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -19,8 +19,11 @@
     "ecr",
     "aws",
     "echo",
+    "echo-registry",
     "pull-through-cache",
-    "container-registry"
+    "container-registry",
+    "mirror",
+    "cache"
   ],
   "author": "Echo Team",
   "license": "MIT",

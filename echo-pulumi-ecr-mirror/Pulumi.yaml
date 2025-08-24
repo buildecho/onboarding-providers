@@ -3,18 +3,18 @@ description: ECR Pullthrough Cache integration with Echo registry service
 runtime: nodejs
 
 config:
-  sourceRegistryAccountId:
+  echoRegistryAccountId:
     type: string
-    description: "The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform"
-  sourceRegistryRegion:
+    description: "The AWS account ID of the Echo ECR registry (12 digits)"
+  echoRegistryRegion:
     type: string
-    description: "The AWS region of the source ECR registry (Echo registry) - Get this from Echo platform"
+    description: "The AWS region of the Echo ECR registry"
     default: "us-east-1"
-  repositoryPrefix:
+  cacheNamespace:
     type: string
-    description: "Prefix for cached repository names - This will be the prefix in your registry"
+    description: "Namespace/prefix for cached repositories in your ECR"
     default: "echo"
-  cacheRuleName:
+  resourcePrefix:
     type: string
-    description: "Name for the pullthrough cache rule"
-    default: "echo-registry-cache" 
+    description: "Prefix for names of IAM resources created by this component"
+    default: "echo-mirror"

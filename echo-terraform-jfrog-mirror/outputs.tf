@@ -10,5 +10,5 @@ output "repository_url" {
 
 output "pull_url" {
   description = "The URL to use for pulling images through Artifactory"
-  value       = var.create ? "${var.artifactory_url}/${var.repository_key}" : null
+  value       = var.create ? "${var.artifactory_url}/${artifactory_remote_docker_repository.echo_remote[0].key}" : null
 }

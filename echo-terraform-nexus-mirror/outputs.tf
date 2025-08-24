@@ -31,7 +31,7 @@ output "repository_privilege_name" {
 
 output "docker_pull_command" {
   description = "Example Docker pull command"
-  value       = var.create ? "docker pull ${var.repository_name}/<image>:<tag>" : null
+  value       = var.create ? "docker pull ${nexus_repository_docker_proxy.echo_proxy[0].name}/<image>:<tag>" : null
 }
 
 output "configuration_summary" {

@@ -46,22 +46,22 @@ Configure Docker to use Harbor as a proxy cache:
 docker login [YOUR_HARBOR_URL]
 
 # Pull images through the proxy cache project
-docker pull [YOUR_HARBOR_URL]/${local.project_name}/[IMAGE_NAME]:[TAG]
+docker pull [YOUR_HARBOR_URL]/${harbor_project.echo_proxy_cache[0].name}/[IMAGE_NAME]:[TAG]
 ```
 
 ## 📋 Examples
 ```bash
 # Pull a sample image
-docker pull [YOUR_HARBOR_URL]/${local.project_name}/my-app:latest
+docker pull [YOUR_HARBOR_URL]/${harbor_project.echo_proxy_cache[0].name}/my-app:latest
 
 # Tag and push to your Harbor registry
-docker tag my-app:latest [YOUR_HARBOR_URL]/${local.project_name}/my-app:latest
-docker push [YOUR_HARBOR_URL]/${local.project_name}/my-app:latest
+docker tag my-app:latest [YOUR_HARBOR_URL]/${harbor_project.echo_proxy_cache[0].name}/my-app:latest
+docker push [YOUR_HARBOR_URL]/${harbor_project.echo_proxy_cache[0].name}/my-app:latest
 ```
 
 ## 🔧 Configuration
-- **Registry Name**: ${local.registry_name}
-- **Project Name**: ${local.project_name}
+- **Registry Name**: ${harbor_registry.echo_registry[0].name}
+- **Project Name**: ${harbor_project.echo_proxy_cache[0].name}
 - **Registry ID**: ${harbor_registry.echo_registry[0].registry_id}
 - **Project ID**: ${harbor_project.echo_proxy_cache[0].project_id}
 - **Echo Registry URL**: ${var.echo_registry_url}

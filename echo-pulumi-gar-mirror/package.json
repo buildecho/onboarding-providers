@@ -1,12 +1,13 @@
 {
-  "name": "@buildecho/echo-pulumi-gar-mirror",
-  "version": "1.0.6",
-  "description": "Pulumi component for setting up GCP Artifact Registry remote repository with Echo registry",
+  "name": "@echo/pulumi-gcp-gar-remote",
+  "version": "1.0.0",
+  "description": "Pulumi component for setting up GCP Artifact Registry remote repository to integrate with Echo registry",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist/**/*",
     "README.md",
+    "PulumiPlugin.yaml",
     "LICENSE"
   ],
   "scripts": {
@@ -17,10 +18,13 @@
   "keywords": [
     "pulumi",
     "gcp",
+    "google-cloud",
     "artifact-registry",
     "echo",
+    "echo-registry",
     "remote-repository",
-    "container-registry"
+    "container-registry",
+    "mirror"
   ],
   "author": "Echo Team",
   "license": "MIT",

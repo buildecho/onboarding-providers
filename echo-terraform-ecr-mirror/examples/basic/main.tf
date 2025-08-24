@@ -8,52 +8,42 @@ terraform {
   }
 }
 
-# Configure the AWS Provider
 provider "aws" {
   region = var.aws_region
 }
 
-# Use the ECR pull-through cache module
-module "ecr_pullthrough_cache" {
+module "echo_ecr_cache" {
   source = "../.."
 
-  create                     = true
-  cache_rule_name            = var.cache_rule_name
-  repository_prefix          = var.repository_prefix
-  source_registry_account_id = var.source_registry_account_id
-  source_registry_region     = var.source_registry_region
+  create                   = true
+  echo_registry_account_id = var.echo_registry_account_id
+  echo_registry_region     = var.echo_registry_region
+  cache_namespace          = var.cache_namespace
 
   tags = var.tags
 }
 
-# Variables
 variable "aws_region" {
   type        = string
   description = "AWS region where resources will be created"
   default     = "us-east-1"
 }
 
-variable "cache_rule_name" {
+variable "echo_registry_account_id" {
   type        = string
-  description = "Name for the ECR pull-through cache rule"
-  default     = "echo-cache"
+  description = "AWS account ID of the Echo registry"
 }
 
-variable "repository_prefix" {
+variable "echo_registry_region" {
   type        = string
-  description = "Repository prefix for the cache rule"
-  default     = "echo"
-}
-
-variable "source_registry_account_id" {
-  type        = string
-  description = "AWS account ID of the source ECR registry"
-}
-
-variable "source_registry_region" {
-  type        = string
-  description = "AWS region of the source ECR registry"
+  description = "AWS region of the Echo registry"
   default     = "us-east-1"
+}
+
+variable "cache_namespace" {
+  type        = string
+  description = "Prefix/namespace for cached images"
+  default     = "echo"
 }
 
 variable "tags" {
@@ -62,21 +52,22 @@ variable "tags" {
   default = {
     Environment = "production"
     ManagedBy   = "terraform"
+    Purpose     = "echo-registry-integration"
+    Component   = "pullthrough-cache"
   }
 }
 
-# Outputs
-output "cache_rule_registry_id" {
-  description = "The registry ID of the pull-through cache rule"
-  value       = module.ecr_pullthrough_cache.cache_rule_registry_id
+output "mirror_url" {
+  description = "Base URL of your mirror"
+  value       = module.echo_ecr_cache.mirror_url
 }
 
-output "cache_rule_upstream_registry_url" {
-  description = "The upstream registry URL of the pull-through cache rule"
-  value       = module.ecr_pullthrough_cache.cache_rule_upstream_registry_url
+output "access_role_arn" {
+  description = "ARN of the ECR access role"
+  value       = module.echo_ecr_cache.access_role_arn
 }
 
-output "iam_role_arn" {
-  description = "ARN of the IAM role used for ECR access"
-  value       = module.ecr_pullthrough_cache.iam_role_arn
+output "usage_instruction" {
+  description = "Single-line docker pull command template"
+  value       = module.echo_ecr_cache.usage_instruction
 }

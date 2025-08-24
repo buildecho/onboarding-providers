@@ -23,11 +23,6 @@ output "secret_version" {
   value       = var.create ? google_secret_manager_secret_version.echo_access_key[0].name : null
 }
 
-output "resource_prefix" {
-  description = "The resource prefix used for naming resources"
-  value       = var.create ? var.resource_prefix : null
-}
-
 output "resource_arns" {
   description = "Resource identifiers of all resources created by this module"
   value = var.create ? {
@@ -51,26 +46,26 @@ Configure Docker to use this remote repository:
 gcloud auth configure-docker ${var.location}-docker.pkg.dev
 
 # Pull images through the remote repository
-docker pull ${var.location}-docker.pkg.dev/${var.project_id}/${local.repository_id}/[IMAGE_NAME]:[TAG]
+docker pull ${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.echo_remote_repo[0].repository_id}/[IMAGE_NAME]:[TAG]
 ```
 
 ## 📋 Examples
 ```bash
 # Pull a sample image
-docker pull ${var.location}-docker.pkg.dev/${var.project_id}/${local.repository_id}/my-app:latest
+docker pull ${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.echo_remote_repo[0].repository_id}/my-app:latest
 
 # List repositories
 gcloud artifacts repositories list --location=${var.location}
 
 # List images in repository
-gcloud artifacts docker images list ${var.location}-docker.pkg.dev/${var.project_id}/${local.repository_id}
+gcloud artifacts docker images list ${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.echo_remote_repo[0].repository_id}
 ```
 
 ## 🔧 Configuration
-- **Repository ID**: ${local.repository_id}
+- **Repository ID**: ${google_artifact_registry_repository.echo_remote_repo[0].repository_id}
 - **Location**: ${var.location}
 - **Project ID**: ${var.project_id}
-- **Repository URL**: ${var.location}-docker.pkg.dev/${var.project_id}/${local.repository_id}
+- **Repository URL**: ${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.echo_remote_repo[0].repository_id}
 
 ## 📝 Notes
 - Images are automatically cached on first pull from Echo Registry

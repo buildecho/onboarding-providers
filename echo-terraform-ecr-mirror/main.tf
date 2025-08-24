@@ -1,25 +1,15 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 5.0"
-    }
-  }
-}
+# Terraform version requirements moved to versions.tf
 
-locals {
-  cache_rule_name = var.cache_rule_name != "" ? var.cache_rule_name : "${var.resource_prefix}-ecr-cache"
-}
+# No locals needed - using direct variable references
 
 # ECR Pullthrough Cache Rule
 resource "aws_ecr_pull_through_cache_rule" "this" {
   count = var.create ? 1 : 0
 
-  ecr_repository_prefix = var.repository_prefix
-  upstream_registry_url = "${var.source_registry_account_id}.dkr.ecr.${var.source_registry_region}.amazonaws.com"
+  ecr_repository_prefix = var.cache_namespace
+  upstream_registry_url = "${var.echo_registry_account_id}.dkr.ecr.${var.echo_registry_region}.amazonaws.com"
 
-  custom_role_arn = aws_iam_role.ecr_access[0].arn
+  custom_role_arn = var.create ? aws_iam_role.ecr_access[0].arn : null
 
   depends_on = [aws_iam_role.ecr_access]
 }
@@ -28,7 +18,7 @@ resource "aws_ecr_pull_through_cache_rule" "this" {
 resource "aws_iam_role" "ecr_access" {
   count = var.create ? 1 : 0
 
-  name = "${local.cache_rule_name}-ecr-access-role"
+  name = var.role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -50,7 +40,7 @@ resource "aws_iam_role" "ecr_access" {
 resource "aws_iam_role_policy" "ecr_pullthrough_cache" {
   count = var.create ? 1 : 0
 
-  name = "${local.cache_rule_name}-policy"
+  name = var.policy_name
   role = aws_iam_role.ecr_access[0].id
 
   policy = jsonencode({

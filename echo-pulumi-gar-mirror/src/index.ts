@@ -6,6 +6,12 @@ import * as gcp from "@pulumi/gcp";
  */
 export interface GcpGarRemoteConfig {
     /**
+     * Whether to create resources under this component
+     * @default true
+     */
+    create?: boolean;
+
+    /**
      * The GCP project ID where resources will be created
      */
     projectId: string;
@@ -17,10 +23,10 @@ export interface GcpGarRemoteConfig {
     location?: string;
     
     /**
-     * Name for the cache repository
-     * @default "echo"
+     * Repository name for cached images - This will be the name of your repository
+     * @default "echo-mirror"
      */
-    cacheRepositoryName?: string;
+    repositoryName?: string;
     
     /**
      * Echo access key name (username)
@@ -155,7 +161,7 @@ export class GcpGarRemote extends pulumi.ComponentResource {
         
         // Set defaults
         const location = config.location || "us-central1";
-        const cacheRepositoryName = config.cacheRepositoryName || "echo";
+        const cacheRepositoryName = config.repositoryName || "echo-mirror";
         const echoRegistryUrl = config.echoRegistryUrl || "https://reg.echohq.com";
         const description = config.description || "Remote repository for Echo Registry integration";
         
