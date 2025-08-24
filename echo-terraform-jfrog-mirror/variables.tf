@@ -4,17 +4,6 @@ variable "create" {
   default     = true
 }
 
-variable "artifactory_url" {
-  type        = string
-  description = "The URL of your Artifactory instance"
-}
-
-variable "artifactory_access_token" {
-  type        = string
-  description = "Access token for Artifactory authentication"
-  sensitive   = true
-}
-
 variable "repository_name" {
   type        = string
   description = "The name for the remote repository in Artifactory"
