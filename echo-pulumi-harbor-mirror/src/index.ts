@@ -31,13 +31,13 @@ export interface HarborIntegrationConfig {
      * Custom name for the Harbor registry resource
      * @default "echo-registry"
      */
-    registryName?: string;
+    echoRegistryName?: string;
     
     /**
      * Custom name for the Harbor project
      * @default "echo"
      */
-    projectName?: string;
+    cacheProjectName?: string;
     
     /**
      * Description for the Echo registry in Harbor
@@ -81,16 +81,6 @@ export interface HarborIntegrationConfig {
  */
 export interface HarborIntegrationOutputs {
     /**
-     * The Harbor registry resource
-     */
-    registry?: harbor.Registry;
-    
-    /**
-     * The Harbor project resource configured as proxy cache
-     */
-    project?: harbor.Project;
-    
-    /**
      * The registry ID for reference
      */
     registryId?: pulumi.Output<number>;
@@ -114,7 +104,7 @@ export interface HarborIntegrationOutputs {
  * 
  * @example
  * ```typescript
- * import { HarborIntegration } from "@echo/pulumi-harbor-integration";
+ * import { HarborIntegration } from "@echo/pulumi-harbor-mirror";
  * 
  * const harborIntegration = new HarborIntegration("echo-harbor", {
  *     echoAccessKeyName: "my-echo-access-key",
@@ -126,8 +116,6 @@ export interface HarborIntegrationOutputs {
  * ```
  */
 export class HarborIntegration extends pulumi.ComponentResource {
-    public readonly registry?: harbor.Registry;
-    public readonly project?: harbor.Project;
     public readonly registryId?: pulumi.Output<number>;
     public readonly projectName?: pulumi.Output<string>;
     public readonly usageInstructions: pulumi.Output<string>;
@@ -137,8 +125,8 @@ export class HarborIntegration extends pulumi.ComponentResource {
         
         // Set defaults
         const echoRegistryUrl = config.echoRegistryUrl || "https://reg.echohq.com";
-        const registryName = config.registryName || "echo-registry";
-        const projectName = config.projectName || "echo";
+        const registryName = config.echoRegistryName || "echo-registry";
+        const projectName = config.cacheProjectName || "echo";
         const registryDescription = config.registryDescription || "Echo Registry";
         const projectPublic = config.projectPublic ?? false;
         const vulnerabilityScanning = config.vulnerabilityScanning ?? true;
@@ -147,7 +135,7 @@ export class HarborIntegration extends pulumi.ComponentResource {
         const autoSbomGeneration = config.autoSbomGeneration ?? false;
         
             // Create Harbor registry configuration for Echo
-            this.registry = new harbor.Registry(`${name}-registry`, {
+            const registry = new harbor.Registry(`${name}-registry`, {
                 providerName: "docker-registry",
                 endpointUrl: echoRegistryUrl,
                 name: registryName,
@@ -157,84 +145,34 @@ export class HarborIntegration extends pulumi.ComponentResource {
             }, { parent: this });
             
             // Create Harbor project as proxy cache
-            this.project = new harbor.Project(`${name}-project`, {
+            const project = new harbor.Project(`${name}-project`, {
                 name: projectName,
-                registryId: this.registry.registryId,
+                registryId: registry.registryId,
                 public: projectPublic,
                 vulnerabilityScanning: vulnerabilityScanning,
                 enableContentTrust: enableContentTrust,
                 enableContentTrustCosign: enableContentTrustCosign,
                 autoSbomGeneration: autoSbomGeneration,
-            }, { parent: this, dependsOn: [this.registry] });
+            }, { parent: this, dependsOn: [registry] });
             
-            this.registryId = this.registry.registryId;
+            this.registryId = registry.registryId;
             this.projectName = pulumi.output(projectName);
             
-            // Generate usage instructions
+            // one line docker pull command
             this.usageInstructions = pulumi.all([
                 this.projectName,
-                pulumi.output(echoRegistryUrl)
-            ]).apply(([proj, registryUrl]) => {
-                return this.generateUsageInstructions(proj, registryUrl);
+            ]).apply(([proj]) => {
+                return pulumi.interpolate`docker pull <harbor-instance>/${proj}/static:latest`;
             });
         
         // Register outputs
         this.registerOutputs({
-            registry: this.registry,
-            project: this.project,
             registryId: this.registryId,
             projectName: this.projectName,
-            usageInstructions: this.usageInstructions
+            usageInstructions: this.usageInstructions,
         });
     }
     
-    private generateUsageInstructions(projectName: string, echoRegistryUrl: string): string {
-        return `
-🎉 Harbor Echo Integration Setup Complete!
-
-Your Harbor instance is now configured to proxy Echo Registry images.
-
-📦 How to Pull Echo Images through Harbor:
-─────────────────────────────────────────────
-Instead of pulling directly from Echo:
-  docker pull ${echoRegistryUrl.replace('https://', '')}/nginx:latest
-
-Pull through Harbor proxy cache:
-  docker pull <your-harbor-instance>/${projectName}/nginx:latest
-
-Example:
-  docker pull harbor.example.com/${projectName}/nginx:latest
-
-💡 Benefits:
-- ⚡ Faster pulls (images cached locally in Harbor)
-- 🔒 Enhanced security with Harbor's scanning and policies
-- 📊 Better visibility and control over image usage
-- 🛡️ Vulnerability scanning with Harbor's integrated scanners
-- 📋 SBOM generation for supply chain security
-- 🔐 Content trust enforcement options
-
-⚠️  Important Notes:
-1. The first pull will fetch from Echo and cache in Harbor
-2. Subsequent pulls use the cached version
-3. Harbor will periodically check for updates
-4. Configure Harbor's cleanup policies to manage storage
-
-🔧 Harbor Configuration:
-- Registry Name: echo-registry
-- Project Name: ${projectName}
-- Type: Proxy Cache Project
-
-📚 Additional Configuration:
-You can configure additional Harbor features like:
-- Vulnerability scanning policies
-- Content trust requirements
-- Retention policies
-- Webhook notifications
-- Replication rules
-
-Need help? Contact Echo support at support@echohq.com.
-`;
-    }
 }
 
 /**
@@ -260,8 +198,6 @@ export function createHarborIntegration(
     const integration = new HarborIntegration(name, config, opts);
     
     return {
-        registry: integration.registry,
-        project: integration.project,
         registryId: integration.registryId,
         projectName: integration.projectName,
         usageInstructions: integration.usageInstructions
