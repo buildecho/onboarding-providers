@@ -2,38 +2,51 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'ECR Pullthrough Cache Rule for private registry integration'
 
 Parameters:
-  SourceRegistryAccountId:
+  EchoRegistryAccountId:
     Type: String
     Description: 'The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform'
     AllowedPattern: '^[0-9]{12}$'
     ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
   
-  SourceRegistryRegion:
+  EchoRegistryRegion:
     Type: String
     Description: 'The AWS region of the source ECR registry (Echo registry) - Get this from Echo platform'
     Default: 'us-east-1'
     AllowedValues:
       - us-east-1
   
-  RepositoryNamePrefix:
+  CacheNamespacePrefix:
     Type: String
-    Description: 'Optional prefix for cached repository names - This will be the prefix in your registry'
+    Description: 'Prefix for cached repository names - This will be the prefix in your registry'
     Default: 'echo'
   
-  CacheRuleName:
+  IAMRoleName:
     Type: String
-    Description: 'Name for the pullthrough cache rule'
-    Default: 'echo-registry-cache'
-    AllowedPattern: '^[a-z0-9]+([._-][a-z0-9]+)*$'
-    ConstraintDescription: 'Must contain only lowercase letters, numbers, periods, hyphens, and underscores'
+    Description: 'Name for the IAM role used by the pullthrough cache'
+    Default: 'echo-ecr-mirroring-role'
+  
+  IAMPolicyName:
+    Type: String
+    Description: 'Name for the IAM policy attached to the role'
+    Default: 'echo-ecr-mirroring-policy'
+  
+  ResourceNameSuffix:
+    Type: String
+    Description: 'Optional suffix to append to resource names for uniqueness'
+    Default: ''
+    AllowedPattern: '^[a-zA-Z0-9-]*$'
+    ConstraintDescription: 'Must contain only letters, numbers, and hyphens'
+
+Conditions:
+  HasResourceNameSuffix: !Not [!Equals [!Ref ResourceNameSuffix, '']]
 
 Resources:
   ECRPullthroughCacheRule:
     Type: AWS::ECR::PullThroughCacheRule
     Properties:
-      EcrRepositoryPrefix: !Ref RepositoryNamePrefix
+      EcrRepositoryPrefix: !Ref CacheNamespacePrefix
       UpstreamRegistry: 'ecr'
-      UpstreamRegistryUrl: !Sub '${SourceRegistryAccountId}.dkr.ecr.${SourceRegistryRegion}.amazonaws.com'
+      UpstreamRegistryUrl: !Sub '${EchoRegistryAccountId}.dkr.ecr.${EchoRegistryRegion}.amazonaws.com'
       UpstreamRepositoryPrefix: 'ROOT'
       # Use CustomRoleArn for ECR private-to-private pullthrough cache
       CustomRoleArn: !GetAtt ECRAccessRole.Arn
@@ -42,7 +55,10 @@ Resources:
   ECRAccessRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${CacheRuleName}-ecr-access-role'
+      RoleName: !If
+        - HasResourceNameSuffix
+        - !Sub '${IAMRoleName}-${ResourceNameSuffix}'
+        - !Ref IAMRoleName
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -51,7 +67,10 @@ Resources:
               Service: pullthroughcache.ecr.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: ECRPullthroughCachePolicy
+        - PolicyName: !If
+            - HasResourceNameSuffix
+            - !Sub '${IAMPolicyName}-${ResourceNameSuffix}'
+            - !Ref IAMPolicyName
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -72,13 +91,13 @@ Resources:
 Outputs:
   RepositoryPrefix:
     Description: 'Repository prefix for cached images'
-    Value: !Ref RepositoryNamePrefix
+    Value: !Ref CacheNamespacePrefix
     Export:
       Name: !Sub '${AWS::StackName}-Repository-Prefix'
   
   UpstreamRegistryUrl:
     Description: 'Echo registry URL'
-    Value: !Sub '${SourceRegistryAccountId}.dkr.ecr.${SourceRegistryRegion}.amazonaws.com'
+    Value: !Sub '${EchoRegistryAccountId}.dkr.ecr.${EchoRegistryRegion}.amazonaws.com'
     Export:
       Name: !Sub '${AWS::StackName}-Upstream-Registry-Url'
   
@@ -92,9 +111,8 @@ Outputs:
     Description: 'Instructions for using the pullthrough cache'
     Value: !Sub |
       To pull images through this cache, use:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/[REPOSITORY_NAME]:[TAG]
+      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/[REPOSITORY_NAME]:[TAG]
       
       Example:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/my-app:latest
+      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/static:latest
       
-      Note: For cross-account access, ensure the upstream registry has the appropriate registry permissions policy. 

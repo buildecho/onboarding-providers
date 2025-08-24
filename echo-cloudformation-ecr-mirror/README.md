@@ -1,120 +1,84 @@
-# ECR Pullthrough Cache - CloudFormation Template
+# Echo ECR Pull-Through Cache - CloudFormation Template
 
-This CloudFormation template creates an ECR pullthrough cache rule to integrate with Echo registry.
+This CloudFormation template creates an ECR pull-through cache rule to integrate with Echo registry.
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=echo-pull-through-cache&templateURL=https://echohq-cloudformation-stacks.s3.us-east-1.amazonaws.com/ecr-pullthrough-cache.yaml)
+## 🚀 Quick Deploy
 
-## Prerequisites
+### AWS Console (One-Click Deploy)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=echo-ecr-integration&templateURL=https://raw.githubusercontent.com/buildecho/onboarding-providers/main/echo-cloudformation-ecr-mirror/template.yaml)
 
-- Echo's AWS Account ID (provided by Echo team)
-- AWS CLI configured with appropriate credentials
-- IAM permissions to create CloudFormation stacks with CAPABILITY_NAMED_IAM
-
-## Parameters
-
-| Parameter | Description | Required | Default |
-|-----------|-------------|----------|---------|
-| `SourceRegistryAccountId` | Echo's AWS account ID (12 digits) | ✅ | - |
-| `SourceRegistryRegion` | Echo's AWS region | ✅ | us-east-1 |
-| `RepositoryNamePrefix` | Prefix for cached repository names | ❌ | echo |
-| `CacheRuleName` | Name for the pullthrough cache rule | ❌ | echo-registry-cache |
-
-## Quick Deploy
-
-### Option 1: Deploy from S3 URL
-
+### AWS CLI
 ```bash
-aws cloudformation create-stack \
-  --stack-name echo-registry-ecr-cache \
-  --template-url https://echohq-cloudformation-stacks.s3.us-east-1.amazonaws.com/ecr-pullthrough-cache.yaml \
-  --parameters ParameterKey=SourceRegistryAccountId,ParameterValue=ECHO_ACCOUNT_ID \
-               ParameterKey=SourceRegistryRegion,ParameterValue=us-east-1 \
+aws cloudformation deploy \
+  --template-file template.yaml \
+  --stack-name echo-ecr-integration \
+  --parameter-overrides \
+    SourceRegistryAccountId=123456789012 \
   --capabilities CAPABILITY_NAMED_IAM
 ```
 
-### Option 2: Deploy from Local File
+## 📋 Prerequisites
 
-```bash
-aws cloudformation create-stack \
-  --stack-name echo-registry-ecr-cache \
-  --template-body file://template.yaml \
-  --parameters ParameterKey=SourceRegistryAccountId,ParameterValue=ECHO_ACCOUNT_ID \
-               ParameterKey=SourceRegistryRegion,ParameterValue=us-east-1 \
-  --capabilities CAPABILITY_NAMED_IAM
-```
+- **Echo Registry Credentials**: Get the AWS Account ID from the Echo platform
+- **AWS CLI**: Configured with appropriate credentials  
+- **IAM Permissions**: To create CloudFormation stacks with CAPABILITY_NAMED_IAM
 
-## Verify Deployment
+## 📥 Template Parameters
+
+| Parameter | Description | Type | Default | Required |
+|-----------|-------------|------|---------|----------|
+| `SourceRegistryAccountId` | AWS account ID of Echo registry (12 digits) | `String` | - | ✅ |
+| `SourceRegistryRegion` | AWS region of Echo registry | `String` | `"us-east-1"` | ❌ |
+| `RepositoryNamePrefix` | Repository prefix for cached images | `String` | `"echo-mirror"` | ❌ |
+| `CacheRuleName` | Name for the pullthrough cache rule | `String` | `"echo-mirror-cache-rule"` | ❌ |
+
+## 📤 Stack Outputs
+
+| Output | Description |
+|--------|-------------|
+| `RepositoryPrefix` | Repository prefix for cached images |
+| `UpstreamRegistryUrl` | Echo registry URL |
+| `AccessRoleArn` | ARN of the ECR access role |
+| `CacheRuleName` | Name of the pullthrough cache rule |
+| `UsageInstructions` | Detailed usage instructions with examples |
+
+## ✅ Verify Deployment
 
 ```bash
 # Check stack status
 aws cloudformation describe-stacks \
-  --stack-name echo-registry-ecr-cache \
-  --query 'Stacks[0].Outputs'
+  --stack-name echo-ecr-integration \
+  --query 'Stacks[0].StackStatus'
 
-# List cache rules
-aws ecr describe-pullthrough-cache-rules
+# View usage instructions
+aws cloudformation describe-stacks \
+  --stack-name echo-ecr-integration \
+  --query 'Stacks[0].Outputs[?OutputKey==`UsageInstructions`].OutputValue' \
+  --output text
 ```
 
-## Test the Integration
+## 🧪 Test the Integration
 
 ```bash
+# Get your account ID and region
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+REGION=$(aws configure get region)
+
 # Login to ECR
-aws ecr get-login-password --region your-region | \
+aws ecr get-login-password --region $REGION | \
   docker login --username AWS --password-stdin \
-  your-account.dkr.ecr.your-region.amazonaws.com
+  $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
 
-# Pull an image
-docker pull your-account.dkr.ecr.your-region.amazonaws.com/echo/test-image:latest
+# Pull an Echo image through your cache
+docker pull $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/echo-mirror/nginx:latest
 ```
 
-## Stack Outputs
-
-- **PullthroughCacheRuleArn**: ARN of the created cache rule
-- **RepositoryPrefix**: The prefix used for cached repositories
-- **UpstreamRegistryUrl**: Echo registry URL
-- **AccessRoleArn**: ARN of the IAM role
-- **UsageInstructions**: Example Docker commands
-
-## Customization
-
-### Using Custom Prefix
+## 🧹 Cleanup
 
 ```bash
-aws cloudformation create-stack \
-  --stack-name echo-registry-ecr-cache \
-  --template-body file://template.yaml \
-  --parameters ParameterKey=SourceRegistryAccountId,ParameterValue=ECHO_ACCOUNT_ID \
-               ParameterKey=RepositoryNamePrefix,ParameterValue=my-echo-cache \
-  --capabilities CAPABILITY_NAMED_IAM
+# Delete the stack
+aws cloudformation delete-stack --stack-name echo-ecr-integration
+
+# Wait for deletion to complete
+aws cloudformation wait stack-delete-complete --stack-name echo-ecr-integration
 ```
-
-## Cleanup
-
-To remove all resources:
-
-```bash
-aws cloudformation delete-stack --stack-name echo-registry-ecr-cache
-```
-
-## Troubleshooting
-
-### Stack Creation Failed
-- Check CloudFormation events: `aws cloudformation describe-stack-events --stack-name echo-registry-ecr-cache`
-- Ensure you included `--capabilities CAPABILITY_NAMED_IAM`
-- Verify parameter values are correct
-
-### Cache Rule Already Exists
-- Delete existing rule: `aws ecr delete-pullthrough-cache-rule --ecr-repository-prefix echo`
-- Or use a different prefix
-
-### Access Denied
-- Verify your IAM permissions
-- Check Echo's account ID is correct
-- Review CloudTrail logs
-
-## Support
-
-For issues:
-1. Check CloudFormation stack events
-2. Review the [ECR Integration Guide](../../docs/integrations/ecr.md)
-3. Contact Echo support with stack outputs and error messages 
