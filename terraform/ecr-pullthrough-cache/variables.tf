@@ -27,13 +27,13 @@ variable "source_registry_region" {
   }
 }
 
-variable "repository_prefix" {
-  description = "Optional prefix for cached repository names - This will be the prefix in your registry"
+variable "repository_name_prefix" {
+  description = "Repository prefix for cached images - This will be the prefix in your registry"
   type        = string
-  default     = "echo"
+  default     = "echo-mirror"
 
   validation {
-    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.repository_prefix))
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.repository_name_prefix))
     error_message = "Repository prefix must contain only lowercase letters, numbers, periods, hyphens, and underscores."
   }
 }
@@ -41,7 +41,7 @@ variable "repository_prefix" {
 variable "cache_rule_name" {
   description = "Name for the pullthrough cache rule"
   type        = string
-  default     = "echo-registry-cache"
+  default     = "echo-mirror-cache-rule"
 
   validation {
     condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.cache_rule_name))
@@ -52,5 +52,9 @@ variable "cache_rule_name" {
 variable "tags" {
   description = "A map of tags to assign to the resources"
   type        = map(string)
-  default     = {}
+  default = {
+    ManagedBy = "terraform"
+    Purpose   = "echo-registry-integration"
+    Component = "pullthrough-cache"
+  }
 }

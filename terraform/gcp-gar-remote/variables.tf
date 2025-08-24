@@ -24,14 +24,14 @@ variable "location" {
   }
 }
 
-variable "repository_id" {
-  description = "The ID of the repository"
+variable "repository_name" {
+  description = "Repository name for cached images - This will be the name of your repository"
   type        = string
-  default     = "echo"
+  default     = "echo-mirror"
 
   validation {
-    condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.repository_id))
-    error_message = "Repository ID must contain only lowercase letters, numbers, and hyphens, and must start with a letter."
+    condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.repository_name))
+    error_message = "Repository name must contain only lowercase letters, numbers, and hyphens, and must start with a letter."
   }
 }
 
@@ -63,8 +63,8 @@ variable "echo_access_key_value" {
   sensitive   = true
 }
 
-variable "echo_access_key_secret_id" {
-  description = "Custom secret ID for the Echo access key. If not provided, defaults to '{repository_id}-echo-access-key'"
+variable "echo_access_key_secret_name" {
+  description = "Custom secret name for the Echo access key. If not provided, defaults to '{repository_name}-echo-access-key'"
   type        = string
   default     = ""
 }
@@ -84,5 +84,9 @@ variable "writer_members" {
 variable "labels" {
   description = "A map of labels to assign to the resources"
   type        = map(string)
-  default     = {}
+  default = {
+    managed-by  = "terraform"
+    purpose     = "echo-registry-integration"
+    component   = "artifact-registry-remote"
+  }
 }

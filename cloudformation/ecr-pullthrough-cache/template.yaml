@@ -1,7 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'ECR Pullthrough Cache Rule for private registry integration'
+Description: 'ECR Pullthrough Cache Rule for Echo registry integration'
 
 Parameters:
+  Create:
+    Type: String
+    Description: 'Whether to create resources under this template'
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+
   SourceRegistryAccountId:
     Type: String
     Description: 'The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform'
@@ -17,19 +25,23 @@ Parameters:
   
   RepositoryNamePrefix:
     Type: String
-    Description: 'Optional prefix for cached repository names - This will be the prefix in your registry'
-    Default: 'echo'
+    Description: 'Repository prefix for cached images - This will be the prefix in your registry'
+    Default: 'echo-mirror'
   
   CacheRuleName:
     Type: String
     Description: 'Name for the pullthrough cache rule'
-    Default: 'echo-registry-cache'
+    Default: 'echo-mirror-cache-rule'
     AllowedPattern: '^[a-z0-9]+([._-][a-z0-9]+)*$'
     ConstraintDescription: 'Must contain only lowercase letters, numbers, periods, hyphens, and underscores'
+
+Conditions:
+  ShouldCreate: !Equals [!Ref Create, 'true']
 
 Resources:
   ECRPullthroughCacheRule:
     Type: AWS::ECR::PullThroughCacheRule
+    Condition: ShouldCreate
     Properties:
       EcrRepositoryPrefix: !Ref RepositoryNamePrefix
       UpstreamRegistry: 'ecr'
@@ -41,8 +53,9 @@ Resources:
   # IAM Role for ECR access
   ECRAccessRole:
     Type: AWS::IAM::Role
+    Condition: ShouldCreate
     Properties:
-      RoleName: !Sub '${CacheRuleName}-ecr-access-role'
+      RoleName: !Sub '${CacheRuleName}-access-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -68,33 +81,94 @@ Resources:
                   - ecr:CompleteLayerUpload
                   - ecr:PutImage
                 Resource: '*'
+      Tags:
+        - Key: ManagedBy
+          Value: cloudformation
+        - Key: Purpose
+          Value: echo-registry-integration
+        - Key: Component
+          Value: pullthrough-cache
 
 Outputs:
   RepositoryPrefix:
     Description: 'Repository prefix for cached images'
-    Value: !Ref RepositoryNamePrefix
+    Value: !If [ShouldCreate, !Ref RepositoryNamePrefix, '']
     Export:
       Name: !Sub '${AWS::StackName}-Repository-Prefix'
   
   UpstreamRegistryUrl:
     Description: 'Echo registry URL'
-    Value: !Sub '${SourceRegistryAccountId}.dkr.ecr.${SourceRegistryRegion}.amazonaws.com'
+    Value: !If [ShouldCreate, !Sub '${SourceRegistryAccountId}.dkr.ecr.${SourceRegistryRegion}.amazonaws.com', '']
     Export:
       Name: !Sub '${AWS::StackName}-Upstream-Registry-Url'
   
   AccessRoleArn:
     Description: 'ARN of the ECR access role'
-    Value: !GetAtt ECRAccessRole.Arn
+    Value: !If [ShouldCreate, !GetAtt ECRAccessRole.Arn, '']
     Export:
       Name: !Sub '${AWS::StackName}-Access-Role-Arn'
+
+  CacheRuleName:
+    Description: 'Name of the pullthrough cache rule'
+    Value: !If [ShouldCreate, !Ref CacheRuleName, '']
+    Export:
+      Name: !Sub '${AWS::StackName}-Cache-Rule-Name'
   
   UsageInstructions:
-    Description: 'Instructions for using the pullthrough cache'
-    Value: !Sub |
-      To pull images through this cache, use:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/[REPOSITORY_NAME]:[TAG]
-      
-      Example:
-      docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/my-app:latest
-      
-      Note: For cross-account access, ensure the upstream registry has the appropriate registry permissions policy. 
+    Description: 'Instructions for using the Echo registry pullthrough cache'
+    Value: !If 
+      - ShouldCreate
+      - !Sub |
+        🎉 Echo Registry Pull-Through Cache Setup Complete!
+
+        Your ECR is now configured to cache Echo images locally for improved performance and reduced data transfer costs.
+
+        📦 How to Pull Echo Images:
+        ─────────────────────────────
+        Use your local cache instead of pulling directly from Echo registry:
+
+          docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/<image-name>:<tag>
+
+        Example:
+          docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryNamePrefix}/nginx:latest
+
+        💡 Benefits:
+        - ⚡ Faster image pulls (cached locally in your AWS region)
+        - 🔒 Enhanced security with your own AWS IAM access controls
+        - 📊 Better visibility into image usage through AWS CloudTrail
+        - 🔄 Automatic cache updates every 24 hours
+        - 💰 Reduced data transfer costs
+
+        ⚠️  Important: Grant your services/applications these IAM permissions:
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "ecr:CreateRepository",
+                        "ecr:BatchImportUpstreamImage"
+                    ],
+                    "Resource": "arn:aws:ecr:*:*:repository/${RepositoryNamePrefix}/*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "ecr:GetAuthorizationToken",
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:GetDownloadUrlForLayer",
+                        "ecr:BatchGetImage"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        }
+
+        📚 Additional Notes:
+        - The first pull will fetch from Echo and cache in your ECR
+        - Subsequent pulls use the cached version for faster performance
+        - Configure ECR lifecycle policies to manage storage costs
+        - Enable ECR image scanning for additional security
+
+        Need help? Contact Echo support at support@echohq.com.
+      - '' 

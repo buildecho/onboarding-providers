@@ -6,6 +6,12 @@ import * as aws from "@pulumi/aws";
  */
 export interface EcrPullThroughCacheConfig {
     /**
+     * Whether to create resources under this component
+     * @default true
+     */
+    create?: boolean;
+
+    /**
      * The AWS account ID of the source ECR registry (Echo registry)
      */
     sourceRegistryAccountId: string;
@@ -17,16 +23,16 @@ export interface EcrPullThroughCacheConfig {
     sourceRegistryRegion?: string;
     
     /**
-     * Prefix for cached repository names - This will be the prefix in your registry
-     * @default "echo"
+     * Repository prefix for cached images - This will be the prefix in your registry
+     * @default "echo-mirror"
      */
-    repositoryPrefix?: string;
+    repositoryNamePrefix?: string;
     
     /**
-     * Name for the IAM role that will be created
-     * @default "echo-pullthrough-cache-role"
+     * Name for the pullthrough cache rule and associated resources
+     * @default "echo-mirror-cache-rule"
      */
-    roleName?: string;
+    cacheRuleName?: string;
     
     /**
      * Additional tags to apply to created resources
@@ -41,17 +47,27 @@ export interface EcrPullThroughCacheOutputs {
     /**
      * The repository prefix used for cached images
      */
-    cachePrefix: pulumi.Output<string>;
+    repositoryNamePrefix: pulumi.Output<string | undefined>;
     
     /**
      * ARN of the IAM role created for pull-through cache
      */
-    roleArn: pulumi.Output<string>;
+    accessRoleArn: pulumi.Output<string | undefined>;
     
     /**
      * The pull-through cache rule resource
      */
-    cacheRule: aws.ecr.PullThroughCacheRule;
+    cacheRule: aws.ecr.PullThroughCacheRule | undefined;
+    
+    /**
+     * Name of the cache rule
+     */
+    cacheRuleName: pulumi.Output<string | undefined>;
+
+    /**
+     * Echo registry URL
+     */
+    upstreamRegistryUrl: pulumi.Output<string | undefined>;
     
     /**
      * Human-readable usage instructions
@@ -71,33 +87,35 @@ export interface EcrPullThroughCacheOutputs {
  * 
  * const cache = new EcrPullThroughCache("echo-cache", {
  *     sourceRegistryAccountId: "123456789012",
- *     repositoryPrefix: "echo"
+ *     repositoryNamePrefix: "echo-mirror"
  * });
  * 
- * export const cachePrefix = cache.cachePrefix;
+ * export const repositoryPrefix = cache.repositoryNamePrefix;
  * export const instructions = cache.usageInstructions;
  * ```
  */
 export class EcrPullThroughCache extends pulumi.ComponentResource {
-    public readonly cachePrefix: pulumi.Output<string>;
-    public readonly roleArn: pulumi.Output<string>;
-    public readonly cacheRule: aws.ecr.PullThroughCacheRule;
+    public readonly repositoryNamePrefix: pulumi.Output<string | undefined>;
+    public readonly accessRoleArn: pulumi.Output<string | undefined>;
+    public readonly cacheRule: aws.ecr.PullThroughCacheRule | undefined;
+    public readonly cacheRuleName: pulumi.Output<string | undefined>;
+    public readonly upstreamRegistryUrl: pulumi.Output<string | undefined>;
     public readonly usageInstructions: pulumi.Output<string>;
     
     constructor(name: string, config: EcrPullThroughCacheConfig, opts?: pulumi.ComponentResourceOptions) {
         super("echo:ecr:PullThroughCache", name, {}, opts);
         
         // Set defaults
+        const create = config.create ?? true;
         const sourceRegistryRegion = config.sourceRegistryRegion || "us-east-1";
-        const repositoryPrefix = config.repositoryPrefix || "echo";
-        const roleName = config.roleName || "echo-pullthrough-cache-role";
+        const repositoryNamePrefix = config.repositoryNamePrefix || "echo-mirror";
+        const cacheRuleName = config.cacheRuleName || "echo-mirror-cache-rule";
         
         // Merge tags
         const defaultTags = {
             ManagedBy: "pulumi",
-            Purpose: "echo-ecr-pullthrough-cache",
-            Vendor: "Echo",
-            Component: name
+            Purpose: "echo-registry-integration",
+            Component: "pullthrough-cache"
         };
         const tags = { ...defaultTags, ...config.tags };
         
@@ -105,98 +123,110 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
         const current = aws.getCallerIdentity({});
         const currentRegion = aws.getRegion({});
         
-        // Create IAM role for ECR pull-through cache
-        const ecrPullThroughCacheRole = new aws.iam.Role(`${name}-role`, {
-            name: roleName,
-            description: "Allows ECR to pull images from Echo's registry",
-            assumeRolePolicy: JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [
-                    {
-                        Effect: "Allow",
-                        Principal: {
-                            Service: "pullthroughcache.ecr.amazonaws.com"
-                        },
-                        Action: "sts:AssumeRole"
-                    }
-                ]
-            }),
-            tags: tags
-        }, { parent: this });
+        let ecrPullThroughCacheRole: aws.iam.Role | undefined;
+        let ecrPullPolicy: aws.iam.RolePolicy | undefined;
         
-        // Attach policy to allow pulling from Echo's registry
-        const ecrPullPolicy = new aws.iam.RolePolicy(`${name}-policy`, {
-            name: "EchoPullThroughCachePolicy",
-            role: ecrPullThroughCacheRole.id,
-            policy: JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [
-                    {
-                        Effect: "Allow",
-                        Action: [
-                            "ecr:GetAuthorizationToken",
-                            "ecr:BatchCheckLayerAvailability",
-                            "ecr:GetDownloadUrlForLayer",
-                            "ecr:BatchGetImage",
-                            "ecr:BatchImportUpstreamImage",
-                            "ecr:GetImageCopyStatus",
-                            "ecr:InitiateLayerUpload",
-                            "ecr:UploadLayerPart",
-                            "ecr:CompleteLayerUpload",
-                            "ecr:PutImage"
-                        ],
-                        Resource: "*"
-                    }
-                ]
-            })
-        }, { parent: this });
-        
-        // Create the pull-through cache rule
-        this.cacheRule = new aws.ecr.PullThroughCacheRule(`${name}-rule`, {
-            ecrRepositoryPrefix: repositoryPrefix,
-            upstreamRegistryUrl: `${config.sourceRegistryAccountId}.dkr.ecr.${sourceRegistryRegion}.amazonaws.com`,
-            customRoleArn: ecrPullThroughCacheRole.arn
-        }, { parent: this, dependsOn: [ecrPullPolicy] });
+        if (create) {
+            // Create IAM role for ECR pull-through cache
+            ecrPullThroughCacheRole = new aws.iam.Role(`${name}-role`, {
+                name: `${cacheRuleName}-access-role`,
+                description: "Allows ECR to pull images from Echo's registry",
+                assumeRolePolicy: JSON.stringify({
+                    Version: "2012-10-17",
+                    Statement: [
+                        {
+                            Effect: "Allow",
+                            Principal: {
+                                Service: "pullthroughcache.ecr.amazonaws.com"
+                            },
+                            Action: "sts:AssumeRole"
+                        }
+                    ]
+                }),
+                tags: tags
+            }, { parent: this });
+            
+            // Attach policy to allow pulling from Echo's registry
+            ecrPullPolicy = new aws.iam.RolePolicy(`${name}-policy`, {
+                name: "ECRPullthroughCachePolicy",
+                role: ecrPullThroughCacheRole.id,
+                policy: JSON.stringify({
+                    Version: "2012-10-17",
+                    Statement: [
+                        {
+                            Effect: "Allow",
+                            Action: [
+                                "ecr:GetAuthorizationToken",
+                                "ecr:BatchCheckLayerAvailability",
+                                "ecr:GetDownloadUrlForLayer",
+                                "ecr:BatchGetImage",
+                                "ecr:BatchImportUpstreamImage",
+                                "ecr:GetImageCopyStatus",
+                                "ecr:InitiateLayerUpload",
+                                "ecr:UploadLayerPart",
+                                "ecr:CompleteLayerUpload",
+                                "ecr:PutImage"
+                            ],
+                            Resource: "*"
+                        }
+                    ]
+                })
+            }, { parent: this });
+            
+            // Create the pull-through cache rule
+            this.cacheRule = new aws.ecr.PullThroughCacheRule(`${name}-rule`, {
+                ecrRepositoryPrefix: repositoryNamePrefix,
+                upstreamRegistryUrl: `${config.sourceRegistryAccountId}.dkr.ecr.${sourceRegistryRegion}.amazonaws.com`,
+                customRoleArn: ecrPullThroughCacheRole.arn
+            }, { parent: this, dependsOn: [ecrPullPolicy] });
+        }
         
         // Set outputs
-        this.cachePrefix = pulumi.output(repositoryPrefix);
-        this.roleArn = ecrPullThroughCacheRole.arn;
+        this.repositoryNamePrefix = create ? pulumi.output(repositoryNamePrefix) : pulumi.output(undefined);
+        this.accessRoleArn = create && ecrPullThroughCacheRole ? ecrPullThroughCacheRole.arn : pulumi.output(undefined);
+        this.cacheRuleName = create ? pulumi.output(cacheRuleName) : pulumi.output(undefined);
+        this.upstreamRegistryUrl = create ? pulumi.output(`${config.sourceRegistryAccountId}.dkr.ecr.${sourceRegistryRegion}.amazonaws.com`) : pulumi.output(undefined);
         
         // Generate usage instructions
-        this.usageInstructions = pulumi.all([current, currentRegion]).apply(([account, region]) => {
-            return this.generateUsageInstructions(account.accountId, region.name, repositoryPrefix);
-        });
+        this.usageInstructions = create ? 
+            pulumi.all([current, currentRegion]).apply(([account, region]) => {
+                return this.generateUsageInstructions(account.accountId, region.name, repositoryNamePrefix);
+            }) : 
+            pulumi.output("");
         
         // Register outputs
         this.registerOutputs({
-            cachePrefix: this.cachePrefix,
-            roleArn: this.roleArn,
+            repositoryNamePrefix: this.repositoryNamePrefix,
+            accessRoleArn: this.accessRoleArn,
+            cacheRuleName: this.cacheRuleName,
+            upstreamRegistryUrl: this.upstreamRegistryUrl,
             usageInstructions: this.usageInstructions
         });
     }
     
     private generateUsageInstructions(accountId: string, region: string, prefix: string): string {
         return `
-🎉 Echo Pull-Through Cache Setup Complete!
+🎉 Echo Registry Pull-Through Cache Setup Complete!
 
-Your ECR is now configured to cache Echo images locally.
+Your ECR is now configured to cache Echo images locally for improved performance and reduced data transfer costs.
 
 📦 How to Pull Echo Images:
 ─────────────────────────────
-Instead of pulling directly from Echo's registry, use your local cache:
+Use your local cache instead of pulling directly from Echo registry:
 
   docker pull ${accountId}.dkr.ecr.${region}.amazonaws.com/${prefix}/<image-name>:<tag>
 
 Example:
-  docker pull ${accountId}.dkr.ecr.${region}.amazonaws.com/${prefix}/static:latest
+  docker pull ${accountId}.dkr.ecr.${region}.amazonaws.com/${prefix}/nginx:latest
 
 💡 Benefits:
-- ⚡ Faster pulls (cached locally in your region)
-- 🔒 Enhanced security with your own access controls
-- 📊 Better visibility into image usage
-- 🔄 Automatic updates every 24 hours
+- ⚡ Faster image pulls (cached locally in your AWS region)
+- 🔒 Enhanced security with your own AWS IAM access controls
+- 📊 Better visibility into image usage through AWS CloudTrail
+- 🔄 Automatic cache updates every 24 hours
+- 💰 Reduced data transfer costs
 
-⚠️  Important: Grant your services / puller role these IAM permissions:
+⚠️  Important: Grant your services/applications these IAM permissions:
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -220,6 +250,12 @@ Example:
         }
     ]
 }
+
+📚 Additional Notes:
+- The first pull will fetch from Echo and cache in your ECR
+- Subsequent pulls use the cached version for faster performance
+- Configure ECR lifecycle policies to manage storage costs
+- Enable ECR image scanning for additional security
 
 Need help? Contact Echo support at support@echohq.com.
 `;
@@ -246,9 +282,11 @@ export function createEcrPullThroughCache(
     const cache = new EcrPullThroughCache(name, config, opts);
     
     return {
-        cachePrefix: cache.cachePrefix,
-        roleArn: cache.roleArn,
+        repositoryNamePrefix: cache.repositoryNamePrefix,
+        accessRoleArn: cache.accessRoleArn,
         cacheRule: cache.cacheRule,
+        cacheRuleName: cache.cacheRuleName,
+        upstreamRegistryUrl: cache.upstreamRegistryUrl,
         usageInstructions: cache.usageInstructions
     };
 }

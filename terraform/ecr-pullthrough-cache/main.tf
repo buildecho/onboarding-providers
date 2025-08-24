@@ -12,7 +12,7 @@ terraform {
 resource "aws_ecr_pull_through_cache_rule" "this" {
   count = var.create ? 1 : 0
 
-  ecr_repository_prefix = var.repository_prefix
+  ecr_repository_prefix = var.repository_name_prefix
   upstream_registry_url = "${var.source_registry_account_id}.dkr.ecr.${var.source_registry_region}.amazonaws.com"
 
   custom_role_arn = aws_iam_role.ecr_access[0].arn
@@ -24,7 +24,7 @@ resource "aws_ecr_pull_through_cache_rule" "this" {
 resource "aws_iam_role" "ecr_access" {
   count = var.create ? 1 : 0
 
-  name = "${var.cache_rule_name}-ecr-access-role"
+  name = "${var.cache_rule_name}-access-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

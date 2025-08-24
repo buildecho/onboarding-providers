@@ -2,10 +2,9 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-
-output "repository_prefix" {
+output "repository_name_prefix" {
   description = "Repository prefix for cached images"
-  value       = var.create ? var.repository_prefix : null
+  value       = var.create ? var.repository_name_prefix : null
 }
 
 output "upstream_registry_url" {
@@ -24,16 +23,61 @@ output "cache_rule_name" {
 }
 
 output "usage_instructions" {
-  description = "Instructions for using the pullthrough cache"
+  description = "Instructions for using the Echo registry pullthrough cache"
   value = var.create ? (
     <<-EOT
-To pull images through this cache, use:
-docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.repository_prefix}/[REPOSITORY_NAME]:[TAG]
+🎉 Echo Registry Pull-Through Cache Setup Complete!
+
+Your ECR is now configured to cache Echo images locally for improved performance and reduced data transfer costs.
+
+📦 How to Pull Echo Images:
+─────────────────────────────
+Use your local cache instead of pulling directly from Echo registry:
+
+  docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.repository_name_prefix}/<image-name>:<tag>
 
 Example:
-docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.repository_prefix}/my-app:latest
+  docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.repository_name_prefix}/nginx:latest
 
-Note: For cross-account access, ensure the upstream registry has the appropriate registry permissions policy.
+💡 Benefits:
+- ⚡ Faster image pulls (cached locally in your AWS region)
+- 🔒 Enhanced security with your own AWS IAM access controls
+- 📊 Better visibility into image usage through AWS CloudTrail
+- 🔄 Automatic cache updates every 24 hours
+- 💰 Reduced data transfer costs
+
+⚠️  Important: Grant your services/applications these IAM permissions:
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:CreateRepository",
+                "ecr:BatchImportUpstreamImage"
+            ],
+            "Resource": "arn:aws:ecr:*:*:repository/${var.repository_name_prefix}/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
+📚 Additional Notes:
+- The first pull will fetch from Echo and cache in your ECR
+- Subsequent pulls use the cached version for faster performance
+- Configure ECR lifecycle policies to manage storage costs
+- Enable ECR image scanning for additional security
+
+Need help? Contact Echo support at support@echohq.com.
 EOT
   ) : null
 }

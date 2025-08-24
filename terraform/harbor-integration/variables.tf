@@ -8,6 +8,11 @@ variable "echo_registry_url" {
   type        = string
   description = "The URL of the Echo registry"
   default     = "https://reg.echohq.com"
+
+  validation {
+    condition     = can(regex("^https?://", var.echo_registry_url))
+    error_message = "Echo registry URL must be a valid HTTP or HTTPS URL."
+  }
 }
 
 variable "echo_access_key_name" {
@@ -20,4 +25,62 @@ variable "echo_access_key_value" {
   type        = string
   description = "The value of the Echo access key"
   sensitive   = true
+}
+
+variable "registry_name" {
+  description = "Name for the Harbor registry resource"
+  type        = string
+  default     = "echo-mirror-registry"
+
+  validation {
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.registry_name))
+    error_message = "Registry name must contain only lowercase letters, numbers, periods, hyphens, and underscores."
+  }
+}
+
+variable "project_name" {
+  description = "Name for the Harbor project"
+  type        = string
+  default     = "echo-mirror"
+
+  validation {
+    condition     = can(regex("^[a-z0-9]+([._-][a-z0-9]+)*$", var.project_name))
+    error_message = "Project name must contain only lowercase letters, numbers, periods, hyphens, and underscores."
+  }
+}
+
+variable "registry_description" {
+  description = "Description for the Echo registry in Harbor"
+  type        = string
+  default     = "Echo Registry integration for container image caching"
+}
+
+variable "project_public" {
+  description = "Whether to make the project public"
+  type        = bool
+  default     = false
+}
+
+variable "vulnerability_scanning" {
+  description = "Enable vulnerability scanning for the project"
+  type        = bool
+  default     = true
+}
+
+variable "enable_content_trust" {
+  description = "Enable content trust for the project"
+  type        = bool
+  default     = false
+}
+
+variable "enable_content_trust_cosign" {
+  description = "Enable content trust cosign for the project"
+  type        = bool
+  default     = false
+}
+
+variable "auto_sbom_generation" {
+  description = "Automatically generate SBOM for images pushed to this project"
+  type        = bool
+  default     = false
 }
