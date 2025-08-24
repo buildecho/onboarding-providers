@@ -4,7 +4,7 @@
 resource "google_secret_manager_secret" "echo_access_key" {
   count = var.create ? 1 : 0
 
-  secret_id = var.echo_access_key_secret_name != "" ? var.echo_access_key_secret_name : "${var.repository_name}-echo-access-key"
+  secret_id = var.echo_access_key_secret_name
 
   replication {
     auto {}
@@ -28,7 +28,7 @@ resource "google_artifact_registry_repository" "echo_remote_repo" {
 
   project       = var.project_id
   location      = var.location
-  repository_id = var.repository_name
+  repository_id = var.cache_repository_name
   description   = var.description != "" ? var.description : "Remote repository for Echo Registry integration"
   format        = "DOCKER"
   mode          = "REMOTE_REPOSITORY"

@@ -24,13 +24,13 @@ variable "location" {
   }
 }
 
-variable "repository_name" {
+variable "cache_repository_name" {
   description = "Repository name for cached images - This will be the name of your repository"
   type        = string
-  default     = "echo-mirror"
+  default     = "echo"
 
   validation {
-    condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.repository_name))
+    condition     = can(regex("^[a-z]([a-z0-9-]*[a-z0-9])?$", var.cache_repository_name))
     error_message = "Repository name must contain only lowercase letters, numbers, and hyphens, and must start with a letter."
   }
 }
@@ -47,8 +47,8 @@ variable "echo_registry_url" {
   default     = "https://reg.echohq.com"
 
   validation {
-    condition     = can(regex("^https?://", var.echo_registry_url))
-    error_message = "Echo registry URL must be a valid HTTP or HTTPS URL."
+    condition     = can(regex("^https://", var.echo_registry_url))
+    error_message = "Echo registry URL must be a valid HTTPS URL."
   }
 }
 
@@ -66,7 +66,7 @@ variable "echo_access_key_value" {
 variable "echo_access_key_secret_name" {
   description = "Custom secret name for the Echo access key. If not provided, defaults to '{repository_name}-echo-access-key'"
   type        = string
-  default     = ""
+  default     = "echo-gar-mirror-secret"
 }
 
 variable "reader_members" {
