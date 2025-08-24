@@ -1,0 +1,25 @@
+# Example Terraform variables file for GCP GAR remote repository
+# Copy this file to terraform.tfvars and fill in your actual values
+
+project_id            = "your-gcp-project-id"
+region                = "us-central1"
+location              = "us-central1"
+repository_id         = "echo-remote"
+echo_access_key_name  = "your-echo-access-key-name"
+echo_access_key_value = "your-echo-access-key-value"
+
+# IAM members who should have access to the repository
+reader_members = [
+  # "user:developer@example.com",
+  # "serviceAccount:ci-cd@your-project.iam.gserviceaccount.com"
+]
+
+writer_members = [
+  # "user:admin@example.com"
+]
+
+labels = {
+  environment = "production"
+  project     = "echo-integration"
+  managed-by  = "terraform"
+} 

@@ -1,0 +1,53 @@
+{
+  "name": "@buildecho/echo-pulumi-nexus-mirror",
+  "version": "1.0.2",
+  "description": "Pulumi component for integrating Sonatype Nexus with Echo registry as a Docker proxy repository",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "pulumi",
+    "nexus",
+    "sonatype",
+    "echo",
+    "docker-proxy",
+    "container-registry",
+    "registry-integration"
+  ],
+  "author": "Echo Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buildecho/onboarding-providers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/buildecho/onboarding-providers/issues"
+  },
+  "homepage": "https://github.com/buildecho/onboarding-providers#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/nexus": "file:sdks/nexus",
+    "@pulumi/pulumi": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@pulumi/pulumi": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

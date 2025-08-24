@@ -1,0 +1,9 @@
+# Example Terraform variables file for Harbor Echo integration
+# Copy this file to terraform.tfvars and fill in your actual values
+
+harbor_url            = "https://your-harbor-instance.com"
+harbor_username       = "admin"
+harbor_password       = "your-harbor-password"
+echo_registry_url     = "https://reg.echohq.com"
+echo_access_key_name  = "your-echo-access-key-name"
+echo_access_key_value = "your-echo-access-key-value" 
