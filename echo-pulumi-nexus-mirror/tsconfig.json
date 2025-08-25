@@ -14,5 +14,9 @@
     },
     "files": [
         "index.ts"
+    ],
+    "include": [
+        "./sdks/**/*.ts"
     ]
+
 }
