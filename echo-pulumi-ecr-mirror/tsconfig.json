@@ -15,12 +15,7 @@
         "resolveJsonModule": true,
         "moduleResolution": "node"
     },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "examples"
+    "files": [
+        "src/index.ts"
     ]
 }
