@@ -37,7 +37,7 @@ export interface NexusIntegrationInput {
     /**
      * Docker configuration options
      */
-    dockerConfig?: {
+    dockerConfig: pulumi.Input<{
         /**
          * Force basic authentication
          * @default true
@@ -64,7 +64,7 @@ export interface NexusIntegrationInput {
          * Subdomain for Docker repository connector
          */
         subdomain?: pulumi.Input<string>;
-    };
+    }>;
     
     /**
      * Type of Docker index (REGISTRY, HUB, or CUSTOM)
@@ -80,7 +80,7 @@ export interface NexusIntegrationInput {
     /**
      * Storage configuration
      */
-    storageConfig?: {
+    storageConfig: pulumi.Input<{
         /**
          * Name of the blob store to use
          * @default "default"
@@ -92,12 +92,12 @@ export interface NexusIntegrationInput {
          * @default true
          */
         strictContentTypeValidation?: pulumi.Input<boolean>;
-    };
+    }>;
     
     /**
      * Proxy configuration
      */
-    proxyConfig?: {
+    proxyConfig: pulumi.Input<{
         /**
          * How long to cache content metadata (in minutes)
          * @default 1440
@@ -109,12 +109,12 @@ export interface NexusIntegrationInput {
          * @default 1440
          */
         metadataMaxAge?: pulumi.Input<number>;
-    };
+    }>;
     
     /**
      * HTTP Client configuration
      */
-    httpClientConfig?: {
+    httpClientConfig: pulumi.Input<{
         /**
          * Block outbound connections from this repository
          * @default false
@@ -166,12 +166,12 @@ export interface NexusIntegrationInput {
              */
             userAgentSuffix?: pulumi.Input<string>;
         }>;
-    };
+    }>;
     
     /**
      * Negative cache configuration
      */
-    negativeCacheConfig?: {
+    negativeCacheConfig: pulumi.Input<{
         /**
          * Enable negative cache
          * @default true
@@ -183,7 +183,7 @@ export interface NexusIntegrationInput {
          * @default 1440
          */
         ttl?: pulumi.Input<number>;
-    };
+    }>;
     
     /**
      * Routing rule for this repository
@@ -193,7 +193,7 @@ export interface NexusIntegrationInput {
     /**
      * Additional tags to apply to created resources
      */
-    tags?: Record<string, string>;
+    tags?: pulumi.Input<Record<string, string>>;
 }
 
 /**
