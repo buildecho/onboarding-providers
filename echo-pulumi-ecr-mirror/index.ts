@@ -4,7 +4,7 @@ import * as aws from "@pulumi/aws";
 /**
  * Configuration options for the Echo ECR Pull-Through Cache
  */
-export interface EcrPullThroughCacheConfig {
+export interface EcrPullThroughCacheInput {
     /**
      * The AWS account ID of the source ECR registry (Echo registry)
      */
@@ -68,15 +68,14 @@ export interface EcrPullThroughCacheOutputs {
  * 
  * @example
  * ```typescript
- * import { EcrPullThroughCache } from "@echo/pulumi-ecr-cache";
+ * import { EcrPullThroughCache } from "@buildecho/echo-pulumi-ecr-mirror";
  * 
  * const cache = new EcrPullThroughCache("echo-cache", {
- *     create: true,
- *     sourceRegistryAccountId: "123456789012",
- *     repositoryPrefix: "echo"
+ *     echoRegistryAccountId: "123456789012",
+ *     echoRegistryRegion: "us-east-1",
+ *     cacheNamespace: "echo"
  * });
  * 
- * export const cachePrefix = cache.cachePrefix;
  * export const usage = cache.usageInstruction;
  * ```
  */
@@ -86,7 +85,7 @@ export default class EcrPullThroughCache extends pulumi.ComponentResource {
     public readonly policyArn: pulumi.Output<string>;
     public readonly usageInstruction: pulumi.Output<string>;
     
-    constructor(name: string, args: EcrPullThroughCacheConfig,opts?: pulumi.ComponentResourceOptions) {
+    constructor(name: string, args: EcrPullThroughCacheInput,opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-ecr-mirror:index:EcrPullThroughCache", name, args, opts);
         
         // Set defaults
