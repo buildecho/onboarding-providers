@@ -80,7 +80,7 @@ export interface EcrPullThroughCacheOutputs {
  * export const usage = cache.usageInstruction;
  * ```
  */
-export class EcrPullThroughCache extends pulumi.ComponentResource {
+export default class EcrPullThroughCache extends pulumi.ComponentResource {
     public readonly cacheNamespace: pulumi.Output<string>;
     public readonly roleArn: pulumi.Output<string>;
     public readonly policyArn: pulumi.Output<string>;
