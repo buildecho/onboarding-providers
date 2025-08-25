@@ -249,7 +249,7 @@ export class NexusIntegration extends pulumi.ComponentResource {
         const dockerConfig = pulumi.all([args.dockerConfig]).apply(([dockerConfig]) => {
             return {
                 forceBasicAuth: dockerConfig?.forceBasicAuth ?? true,
-                httpPort: dockerConfig?.httpPort ?? 2525,
+                httpPort: dockerConfig?.httpPort ?? 2524,
                 httpsPort: dockerConfig?.httpsPort ?? 2525,
                 v1Enabled: dockerConfig?.v1Enabled ?? false,
                 subdomain: dockerConfig?.subdomain ?? "echo"
