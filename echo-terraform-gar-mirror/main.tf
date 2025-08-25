@@ -20,6 +20,7 @@ resource "google_secret_manager_secret_version" "echo_access_key" {
 
   secret      = google_secret_manager_secret.echo_access_key[0].id
   secret_data = var.echo_access_key_value
+
 }
 
 # Artifact Registry Repository for Echo remote integration
@@ -50,10 +51,7 @@ resource "google_artifact_registry_repository" "echo_remote_repo" {
     }
   }
 
-  labels = merge(var.labels, {
-    integration = "echo-registry"
-    remote-type = "custom"
-  })
+  labels = var.labels
 }
 
 # IAM binding for Secret Manager access (required for GAR to read the secret)

@@ -219,7 +219,7 @@ export class GcpGarRemote extends pulumi.ComponentResource {
         this.repositoryId = repository.repositoryId;
         this.secretId = secret.secretId;
         this.secretVersionName = echoAccessKeySecretVersion.name;
-        this.usageInstruction = pulumi.interpolate`docker pull ${repositoryUrl}/<echo-image-name>:<tag>`;
+        this.usageInstruction = pulumi.interpolate`docker pull ${repositoryUrl}/static:latest`;
         
         // Register outputs
         this.registerOutputs({

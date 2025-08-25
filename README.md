@@ -29,7 +29,6 @@ The repository uses a **flattened hierarchy** with consistent naming: `echo-<typ
 ├── echo-pulumi-gar-mirror/            # Pulumi GCP Artifact Registry component
 ├── echo-pulumi-harbor-mirror/         # Pulumi Harbor component
 ├── echo-pulumi-jfrog-mirror/          # Pulumi JFrog component
-└── echo-pulumi-nexus-mirror/          # Pulumi Nexus component
 ```
 
 ### ✨ New Features
@@ -74,7 +73,6 @@ The repository uses a **flattened hierarchy** with consistent naming: `echo-<typ
 | Tool | Status | Directory |
 |------|--------|-----------|
 | **Terraform** | ✅ Ready | [`/echo-terraform-nexus-mirror`](./echo-terraform-nexus-mirror) |
-| **Pulumi** | ✅ Ready | [`/echo-pulumi-nexus-mirror`](./echo-pulumi-nexus-mirror) |
 
 ## 🔧 Prerequisites
 

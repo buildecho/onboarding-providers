@@ -58,7 +58,7 @@ output "pull_url" {
 docker login your-artifactory.com
 
 # Pull through Artifactory mirror
-docker pull your-artifactory.com/echo-remote/<image>:<tag>
+docker pull your-artifactory.com/echo-remote/static:latest
 ```
 
 ## Provider Configuration
