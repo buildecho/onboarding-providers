@@ -10,7 +10,7 @@ export interface NexusIntegrationInput {
      * The URL of the Echo registry
      * @default "https://reg.echohq.com"
      */
-    echoRegistryUrl?: pulumi.Input<string>;
+    echoRegistryUrl?: string;
     
     /**
      * The name of the Echo access key
@@ -26,174 +26,42 @@ export interface NexusIntegrationInput {
      * Name of the Docker proxy repository
      * @default "echo"
      */
-    repositoryName?: pulumi.Input<string>;
+    repositoryName?: string;
+    
+    /**
+     * Description for the repository
+     * @default "Echo Registry mirror for container images"
+     */
+    description?: string;
+    
+    /**
+     * HTTP port for Docker registry connector
+     * @default 8082
+     */
+    httpPort?: number;
+    
+    /**
+     * HTTPS port for Docker registry connector
+     * @default 8083
+     */
+    httpsPort?: number;
+    
+    /**
+     * Name of the blob store to use for repository storage
+     * @default "default"
+     */
+    blobStoreName?: string;
     
     /**
      * Whether this repository should be online
      * @default true
      */
-    repositoryOnline?: pulumi.Input<boolean>;
-    
-    /**
-     * Docker configuration options
-     */
-    dockerConfig: pulumi.Input<{
-        /**
-         * Force basic authentication
-         * @default true
-         */
-        forceBasicAuth?: pulumi.Input<boolean>;
-        
-        /**
-         * HTTP port for Docker registry
-         */
-        httpPort?: pulumi.Input<number>;
-        
-        /**
-         * HTTPS port for Docker registry
-         */
-        httpsPort?: pulumi.Input<number>;
-        
-        /**
-         * Enable Docker V1 API support
-         * @default false
-         */
-        v1Enabled?: pulumi.Input<boolean>;
-        
-        /**
-         * Subdomain for Docker repository connector
-         */
-        subdomain?: pulumi.Input<string>;
-    }>;
-    
-    /**
-     * Type of Docker index (REGISTRY, HUB, or CUSTOM)
-     * @default "REGISTRY"
-     */
-    dockerIndexType?: pulumi.Input<"REGISTRY" | "HUB" | "CUSTOM">;
-    
-    /**
-     * URL of the Docker index (required if dockerIndexType is CUSTOM)
-     */
-    dockerIndexUrl?: pulumi.Input<string>;
-    
-    /**
-     * Storage configuration
-     */
-    storageConfig: pulumi.Input<{
-        /**
-         * Name of the blob store to use
-         * @default "default"
-         */
-        blobStoreName?: pulumi.Input<string>;
-        
-        /**
-         * Enable strict content type validation
-         * @default true
-         */
-        strictContentTypeValidation?: pulumi.Input<boolean>;
-    }>;
-    
-    /**
-     * Proxy configuration
-     */
-    proxyConfig: pulumi.Input<{
-        /**
-         * How long to cache content metadata (in minutes)
-         * @default 1440
-         */
-        contentMaxAge?: pulumi.Input<number>;
-        
-        /**
-         * How long to cache metadata (in minutes)
-         * @default 1440
-         */
-        metadataMaxAge?: pulumi.Input<number>;
-    }>;
-    
-    /**
-     * HTTP Client configuration
-     */
-    httpClientConfig: pulumi.Input<{
-        /**
-         * Block outbound connections from this repository
-         * @default false
-         */
-        blocked?: pulumi.Input<boolean>;
-        
-        /**
-         * Auto-block outbound connections if remote repository is unreachable
-         * @default true
-         */
-        autoBlock?: pulumi.Input<boolean>;
-        
-        /**
-         * Connection configuration
-         */
-        connection?: pulumi.Input<{
-            /**
-             * Number of retries for connection attempts
-             * @default 3
-             */
-            retries?: pulumi.Input<number>;
-            
-            /**
-             * Connection timeout in seconds
-             * @default 60
-             */
-            timeout?: pulumi.Input<number>;
-            
-            /**
-             * Enable circular redirects
-             * @default false
-             */
-            enableCircularRedirects?: pulumi.Input<boolean>;
-            
-            /**
-             * Enable cookies
-             * @default false
-             */
-            enableCookies?: pulumi.Input<boolean>;
-            
-            /**
-             * Use Nexus trust store for certificate validation
-             * @default false
-             */
-            useTrustStore?: pulumi.Input<boolean>;
-            
-            /**
-             * Custom user agent suffix
-             */
-            userAgentSuffix?: pulumi.Input<string>;
-        }>;
-    }>;
-    
-    /**
-     * Negative cache configuration
-     */
-    negativeCacheConfig: pulumi.Input<{
-        /**
-         * Enable negative cache
-         * @default true
-         */
-        enabled?: pulumi.Input<boolean>;
-        
-        /**
-         * Negative cache TTL in minutes
-         * @default 1440
-         */
-        ttl?: pulumi.Input<number>;
-    }>;
-    
-    /**
-     * Routing rule for this repository
-     */
-    routingRule?: pulumi.Input<string>;
+    repositoryOnline?: boolean;
     
     /**
      * Additional tags to apply to created resources
      */
-    tags?: pulumi.Input<Record<string, string>>;
+    tags?: Record<string, string>;
 }
 
 /**
@@ -224,9 +92,8 @@ export interface NexusIntegrationOutputs {
  * const nexusIntegration = new NexusIntegration("echo-nexus", {
  *     echoAccessKeyName: "my-echo-access-key",
  *     echoAccessKeyValue: pulumi.secret("my-echo-access-key-value"),
- *     dockerConfig: {
- *         httpPort: 2525
- *     }
+ *     httpPort: 8082,
+ *     httpsPort: 8083
  * });
  * 
  * export const repositoryName = nexusIntegration.repositoryName;
@@ -241,111 +108,63 @@ export class NexusIntegration extends pulumi.ComponentResource {
     constructor(name: string, args: NexusIntegrationInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-nexus-mirror:index:NexusIntegration", name, args, opts);
         
-        // Set defaults
+        // Set defaults with Echo-focused simplicity
         const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
         const repositoryName = args.repositoryName || "echo";
+        const description = args.description || "Echo Registry mirror for container images";
+        const httpPort = args.httpPort || 8082;
+        const httpsPort = args.httpsPort || 8083;
+        const blobStoreName = args.blobStoreName || "default";
         const repositoryOnline = args.repositoryOnline ?? true;
         
-        // Docker defaults
-        const dockerConfig = pulumi.all([args.dockerConfig]).apply(([dockerConfig]) => {
-            return {
-                forceBasicAuth: dockerConfig?.forceBasicAuth ?? true,
-                httpPort: dockerConfig?.httpPort ?? 2524,
-                httpsPort: dockerConfig?.httpsPort ?? 2525,
-                v1Enabled: dockerConfig?.v1Enabled ?? false,
-                subdomain: dockerConfig?.subdomain ?? "echo"
-            };
-        });
-        
-        // Storage defaults
-        const storageConfig = pulumi.all([args.storageConfig]).apply(([storageConfig]) => {
-            return {
-                blobStoreName: storageConfig?.blobStoreName || "default",
-                strictContentTypeValidation: storageConfig?.strictContentTypeValidation ?? true
-            };
-        });
-        
-        // Proxy defaults
-        const proxyConfig = pulumi.all([args.proxyConfig]).apply(([proxyConfig]) => {
-            return {
-                contentMaxAge: proxyConfig?.contentMaxAge ?? 1440,
-                metadataMaxAge: proxyConfig?.metadataMaxAge ?? 1440
-            };
-        });
-        
-        // HTTP Client defaults
-        const httpClientConfig = pulumi.all([args.httpClientConfig]).apply(([httpClientConfig]) => {
-            return {
-            blocked: httpClientConfig?.blocked ?? false,
-            autoBlock: httpClientConfig?.autoBlock ?? true,
-            connection: {
-                retries: httpClientConfig?.connection?.retries ?? 3,
-                timeout: httpClientConfig?.connection?.timeout ?? 60,
-                enableCircularRedirects: httpClientConfig?.connection?.enableCircularRedirects ?? false,
-                enableCookies: httpClientConfig?.connection?.enableCookies ?? false,
-                useTrustStore: httpClientConfig?.connection?.useTrustStore ?? false,
-                userAgentSuffix: httpClientConfig?.connection?.userAgentSuffix ?? "echo-pulumi-nexus-mirror"
-                }
-            };
-        });
-        
-        // Negative cache defaults
-        const negativeCacheConfig = pulumi.all([args.negativeCacheConfig]).apply(([negativeCacheConfig]) => {
-            return {
-                enabled: negativeCacheConfig?.enabled ?? true,
-                ttl: negativeCacheConfig?.ttl ?? 1440
-            };
-        });
-        
-        // Create Nexus Docker proxy repository
+        // Create Nexus Docker proxy repository with sensible Echo-focused defaults
         this.repository = new nexus.RepositoryDockerProxy(`${name}-repository`, {
             name: repositoryName,
             online: repositoryOnline,
             
-            // Docker configuration
+            // Docker configuration with Echo-optimized defaults
             docker: {
-                forceBasicAuth: dockerConfig?.forceBasicAuth,
-                httpPort: dockerConfig?.httpPort,
-                httpsPort: dockerConfig?.httpsPort,
-                v1Enabled: dockerConfig?.v1Enabled,
-                subdomain: dockerConfig?.subdomain
+                forceBasicAuth: true,
+                httpPort: httpPort,
+                httpsPort: httpsPort,
+                v1Enabled: false,
+                subdomain: "echo"
             },
             
-            // Docker proxy index configuration
+            // Docker proxy index configuration for registry
             dockerProxy: {
-                indexType: args.dockerIndexType || "REGISTRY",
-                indexUrl: args.dockerIndexUrl
+                indexType: "REGISTRY"
             },
             
             // Storage configuration
             storage: {
-                blobStoreName: storageConfig?.blobStoreName,
-                strictContentTypeValidation: storageConfig?.strictContentTypeValidation
+                blobStoreName: blobStoreName,
+                strictContentTypeValidation: true
             },
             
-            // Proxy configuration
+            // Proxy configuration optimized for Echo registry
             proxy: {
                 remoteUrl: echoRegistryUrl,
-                contentMaxAge: proxyConfig?.contentMaxAge,
-                metadataMaxAge: proxyConfig?.metadataMaxAge
+                contentMaxAge: 1440, // 24 hours
+                metadataMaxAge: 1440 // 24 hours
             },
             
-            // HTTP client configuration
+            // HTTP client configuration with Echo registry authentication
             httpClient: {
-                blocked: httpClientConfig?.blocked,
-                autoBlock: httpClientConfig?.autoBlock,
+                blocked: false,
+                autoBlock: true,
                 
-                // Connection settings
+                // Connection settings optimized for Echo registry
                 connection: {
-                    retries: httpClientConfig?.connection?.retries,
-                    timeout: httpClientConfig?.connection?.timeout,
-                    enableCircularRedirects: httpClientConfig?.connection?.enableCircularRedirects,
-                    enableCookies: httpClientConfig?.connection?.enableCookies,
-                    useTrustStore: httpClientConfig?.connection?.useTrustStore,
-                    userAgentSuffix: httpClientConfig?.connection?.userAgentSuffix 
+                    retries: 3,
+                    timeout: 60,
+                    enableCircularRedirects: false,
+                    enableCookies: false,
+                    useTrustStore: false,
+                    userAgentSuffix: "echo-pulumi-nexus-mirror"
                 },
                 
-                // Authentication
+                // Echo registry authentication
                 authentication: {
                     type: "username",
                     username: args.echoAccessKeyName,
@@ -355,28 +174,18 @@ export class NexusIntegration extends pulumi.ComponentResource {
             
             // Negative cache configuration
             negativeCache: {
-                enabled: negativeCacheConfig?.enabled,
-                ttl: negativeCacheConfig?.ttl
-            },
-            
-            // Routing rule
-            routingRule: args.routingRule
+                enabled: true,
+                ttl: 1440 // 24 hours
+            }
             
         }, { parent: this });
         
         this.repositoryName = pulumi.output(repositoryName);
         
-        // Generate Docker pull command
-        this.usageInstructions = pulumi.all([
-            this.repositoryName,
-            pulumi.output(dockerConfig.httpPort),
-            pulumi.output(dockerConfig.httpsPort)
-        ]).apply(([repoName, httpPort, httpsPort]) => {
-            const port = httpPort || httpsPort || "";
-            const portSuffix = port ? `:${port}` : "";
-            return `docker pull <nexus-host>${portSuffix}/${repoName}/static:latest`;
-        });
-        
+        // Generate simple Docker pull command
+        this.usageInstructions = pulumi.output(
+            `docker pull <nexus-host>:${httpPort}/${repositoryName}/<image>:<tag>`
+        );
         
         // Register outputs
         this.registerOutputs({
