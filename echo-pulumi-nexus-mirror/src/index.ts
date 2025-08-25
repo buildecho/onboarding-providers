@@ -200,24 +200,9 @@ export interface NexusIntegrationConfig {
  */
 export interface NexusIntegrationOutputs {
     /**
-     * The Nexus Docker proxy repository resource
+     * The name of the repository
      */
-    repository?: nexus.RepositoryDockerProxy;
-    
-    /**
-     * The repository name
-     */
-    repositoryName?: pulumi.Output<string>;
-    
-    /**
-     * The repository URL
-     */
-    repositoryUrl?: pulumi.Output<string>;
-    
-    /**
-     * Docker pull command example
-     */
-    dockerPullCommand?: pulumi.Output<string>;
+    repositoryName: pulumi.Output<string>;
     
     /**
      * Human-readable usage instructions
@@ -244,15 +229,12 @@ export interface NexusIntegrationOutputs {
  * });
  * 
  * export const repositoryName = nexusIntegration.repositoryName;
- * export const dockerPullCommand = nexusIntegration.dockerPullCommand;
  * export const instructions = nexusIntegration.usageInstructions;
  * ```
  */
 export class NexusIntegration extends pulumi.ComponentResource {
     public readonly repository?: nexus.RepositoryDockerProxy;
-    public readonly repositoryName?: pulumi.Output<string>;
-    public readonly repositoryUrl?: pulumi.Output<string>;
-    public readonly dockerPullCommand?: pulumi.Output<string>;
+    public readonly repositoryName: pulumi.Output<string>;
     public readonly usageInstructions: pulumi.Output<string>;
     
     constructor(name: string, config: NexusIntegrationConfig, opts?: pulumi.ComponentResourceOptions) {
@@ -372,103 +354,26 @@ export class NexusIntegration extends pulumi.ComponentResource {
         }, { parent: this });
         
         this.repositoryName = pulumi.output(repositoryName);
-        this.repositoryUrl = pulumi.interpolate`${echoRegistryUrl}/${repositoryName}`;
         
         // Generate Docker pull command
-        this.dockerPullCommand = pulumi.all([
+        this.usageInstructions = pulumi.all([
             this.repositoryName,
             pulumi.output(dockerConfig.httpPort),
             pulumi.output(dockerConfig.httpsPort)
         ]).apply(([repoName, httpPort, httpsPort]) => {
             const port = httpPort || httpsPort || "";
             const portSuffix = port ? `:${port}` : "";
-            return `docker pull <nexus-host>${portSuffix}/${repoName}/<image>:<tag>`;
+            return `docker pull <nexus-host>${portSuffix}/${repoName}/static:latest`;
         });
         
-        // Generate usage instructions
-        this.usageInstructions = pulumi.all([
-            this.repositoryName,
-            pulumi.output(dockerConfig.httpPort),
-            pulumi.output(dockerConfig.httpsPort),
-            pulumi.output(echoRegistryUrl)
-        ]).apply(([repoName, httpPort, httpsPort, registryUrl]) => {
-            return this.generateUsageInstructions(repoName, httpPort, httpsPort, registryUrl);
-        });
         
         // Register outputs
         this.registerOutputs({
-            repository: this.repository,
             repositoryName: this.repositoryName,
-            repositoryUrl: this.repositoryUrl,
-            dockerPullCommand: this.dockerPullCommand,
             usageInstructions: this.usageInstructions
         });
     }
     
-    private generateUsageInstructions(
-        repositoryName: string, 
-        httpPort: number | undefined, 
-        httpsPort: number | undefined,
-        echoRegistryUrl: string
-    ): string {
-        const port = httpPort || httpsPort || "";
-        const portSuffix = port ? `:${port}` : "";
-        const protocol = httpsPort ? "https" : "http";
-        
-        return `
-🎉 Nexus Echo Integration Setup Complete!
-
-Your Nexus instance is now configured to proxy Echo Registry images.
-
-📦 How to Pull Echo Images through Nexus:
-─────────────────────────────────────────────
-Instead of pulling directly from Echo:
-  docker pull ${echoRegistryUrl.replace('https://', '')}/nginx:latest
-
-Pull through Nexus proxy repository:
-  docker pull <your-nexus-host>${portSuffix}/${repositoryName}/nginx:latest
-
-Example:
-  docker pull nexus.example.com${portSuffix}/${repositoryName}/nginx:latest
-
-🔐 Docker Login (if authentication is required):
-  docker login nexus.example.com${portSuffix}
-
-💡 Benefits:
-- ⚡ Faster pulls (images cached locally in Nexus)
-- 🔒 Enhanced security with Nexus access controls
-- 📊 Better visibility and control over image usage
-- 🛡️ Vulnerability scanning with Nexus Firewall (Pro)
-- 📋 License analysis and compliance
-- 🔄 Automatic cleanup policies to manage storage
-
-⚠️  Important Notes:
-1. The first pull will fetch from Echo and cache in Nexus
-2. Subsequent pulls use the cached version
-3. Nexus will respect cache TTL settings (default: 24 hours)
-4. Configure cleanup policies to manage storage usage
-
-🔧 Nexus Configuration:
-- Repository Name: ${repositoryName}
-- Repository Type: Docker (proxy)
-- Remote URL: ${echoRegistryUrl}
-${port ? `- Docker Port: ${port}` : '- Docker Port: Not configured (using default)'}
-- Negative Cache: Enabled (24 hours)
-
-📚 Additional Configuration:
-You can configure additional Nexus features like:
-- Cleanup policies for automatic storage management
-- Content selectors for fine-grained access control
-- Repository health checks
-- Webhook notifications
-- Repository replication (Pro)
-
-🔗 Nexus Web UI:
-Access your repository at: ${protocol}://<your-nexus-host>/repository/${repositoryName}/
-
-Need help? Contact Echo support at support@echohq.com.
-`;
-    }
 }
 
 /**
@@ -494,10 +399,7 @@ export function createNexusIntegration(
     const integration = new NexusIntegration(name, config, opts);
     
     return {
-        repository: integration.repository,
         repositoryName: integration.repositoryName,
-        repositoryUrl: integration.repositoryUrl,
-        dockerPullCommand: integration.dockerPullCommand,
         usageInstructions: integration.usageInstructions
     };
 }
