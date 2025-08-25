@@ -4,7 +4,7 @@ import * as nexus from "@pulumi/nexus";
 /**
  * Configuration options for the Echo Nexus Integration
  */
-export interface NexusIntegrationConfig {
+export interface NexusIntegrationInput {
     /**
      * The URL of the Echo registry
      * @default "https://reg.echohq.com"
@@ -218,7 +218,7 @@ export interface NexusIntegrationOutputs {
  * 
  * @example
  * ```typescript
- * import { NexusIntegration } from "@buildecho/pulumi-nexus-integration";
+ * import { NexusIntegration } from "@buildecho/echo-pulumi-nexus-mirror";
  * 
  * const nexusIntegration = new NexusIntegration("echo-nexus", {
  *     echoAccessKeyName: "my-echo-access-key",
@@ -237,53 +237,53 @@ export class NexusIntegration extends pulumi.ComponentResource {
     public readonly repositoryName: pulumi.Output<string>;
     public readonly usageInstructions: pulumi.Output<string>;
     
-    constructor(name: string, config: NexusIntegrationConfig, opts?: pulumi.ComponentResourceOptions) {
-        super("echo:nexus:Integration", name, {}, opts);
+    constructor(name: string, args: NexusIntegrationInput, opts?: pulumi.ComponentResourceOptions) {
+        super("echo-pulumi-nexus-mirror:index:NexusIntegration", name, args, opts);
         
         // Set defaults
-        const echoRegistryUrl = config.echoRegistryUrl || "https://reg.echohq.com";
-        const repositoryName = config.repositoryName || "echo";
-        const repositoryOnline = config.repositoryOnline ?? true;
+        const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
+        const repositoryName = args.repositoryName || "echo";
+        const repositoryOnline = args.repositoryOnline ?? true;
         
         // Docker defaults
         const dockerConfig = {
-            forceBasicAuth: config.dockerConfig?.forceBasicAuth ?? true,
-            httpPort: config.dockerConfig?.httpPort,
-            httpsPort: config.dockerConfig?.httpsPort,
-            v1Enabled: config.dockerConfig?.v1Enabled ?? false,
-            subdomain: config.dockerConfig?.subdomain
+            forceBasicAuth: args.dockerConfig?.forceBasicAuth ?? true,
+            httpPort: args.dockerConfig?.httpPort,
+            httpsPort: args.dockerConfig?.httpsPort,
+            v1Enabled: args.dockerConfig?.v1Enabled ?? false,
+            subdomain: args.dockerConfig?.subdomain
         };
         
         // Storage defaults
         const storageConfig = {
-            blobStoreName: config.storageConfig?.blobStoreName || "default",
-            strictContentTypeValidation: config.storageConfig?.strictContentTypeValidation ?? true
+            blobStoreName: args.storageConfig?.blobStoreName || "default",
+            strictContentTypeValidation: args.storageConfig?.strictContentTypeValidation ?? true
         };
         
         // Proxy defaults
         const proxyConfig = {
-            contentMaxAge: config.proxyConfig?.contentMaxAge ?? 1440,
-            metadataMaxAge: config.proxyConfig?.metadataMaxAge ?? 1440
+            contentMaxAge: args.proxyConfig?.contentMaxAge ?? 1440,
+            metadataMaxAge: args.proxyConfig?.metadataMaxAge ?? 1440
         };
         
         // HTTP Client defaults
         const httpClientConfig = {
-            blocked: config.httpClientConfig?.blocked ?? false,
-            autoBlock: config.httpClientConfig?.autoBlock ?? true,
+            blocked: args.httpClientConfig?.blocked ?? false,
+            autoBlock: args.httpClientConfig?.autoBlock ?? true,
             connection: {
-                retries: config.httpClientConfig?.connection?.retries ?? 3,
-                timeout: config.httpClientConfig?.connection?.timeout ?? 60,
-                enableCircularRedirects: config.httpClientConfig?.connection?.enableCircularRedirects ?? false,
-                enableCookies: config.httpClientConfig?.connection?.enableCookies ?? false,
-                useTrustStore: config.httpClientConfig?.connection?.useTrustStore ?? false,
-                userAgentSuffix: config.httpClientConfig?.connection?.userAgentSuffix
+                retries: args.httpClientConfig?.connection?.retries ?? 3,
+                timeout: args.httpClientConfig?.connection?.timeout ?? 60,
+                enableCircularRedirects: args.httpClientConfig?.connection?.enableCircularRedirects ?? false,
+                enableCookies: args.httpClientConfig?.connection?.enableCookies ?? false,
+                useTrustStore: args.httpClientConfig?.connection?.useTrustStore ?? false,
+                userAgentSuffix: args.httpClientConfig?.connection?.userAgentSuffix
             }
         };
         
         // Negative cache defaults
         const negativeCacheConfig = {
-            enabled: config.negativeCacheConfig?.enabled ?? true,
-            ttl: config.negativeCacheConfig?.ttl ?? 1440
+            enabled: args.negativeCacheConfig?.enabled ?? true,
+            ttl: args.negativeCacheConfig?.ttl ?? 1440
         };
         
         // Create Nexus Docker proxy repository
@@ -302,8 +302,8 @@ export class NexusIntegration extends pulumi.ComponentResource {
             
             // Docker proxy index configuration
             dockerProxy: {
-                indexType: config.dockerIndexType || "REGISTRY",
-                indexUrl: config.dockerIndexUrl
+                indexType: args.dockerIndexType || "REGISTRY",
+                indexUrl: args.dockerIndexUrl
             },
             
             // Storage configuration
@@ -337,8 +337,8 @@ export class NexusIntegration extends pulumi.ComponentResource {
                 // Authentication
                 authentication: {
                     type: "username",
-                    username: config.echoAccessKeyName,
-                    password: config.echoAccessKeyValue
+                    username: args.echoAccessKeyName,
+                    password: args.echoAccessKeyValue
                 }
             },
             
@@ -349,7 +349,7 @@ export class NexusIntegration extends pulumi.ComponentResource {
             },
             
             // Routing rule
-            routingRule: config.routingRule
+            routingRule: args.routingRule
             
         }, { parent: this });
         
@@ -375,34 +375,3 @@ export class NexusIntegration extends pulumi.ComponentResource {
     }
     
 }
-
-/**
- * Helper function to create Nexus integration with minimal configuration
- * 
- * @example
- * ```typescript
- * import { createNexusIntegration } from "@buildecho/pulumi-nexus-integration";
- * 
- * const integration = createNexusIntegration("echo-nexus", {
- *     echoAccessKeyName: "my-access-key",
- *     echoAccessKeyValue: pulumi.secret("my-access-key-value")
- * });
- * 
- * export const instructions = integration.usageInstructions;
- * ```
- */
-export function createNexusIntegration(
-    name: string,
-    config: NexusIntegrationConfig,
-    opts?: pulumi.ComponentResourceOptions
-): NexusIntegrationOutputs {
-    const integration = new NexusIntegration(name, config, opts);
-    
-    return {
-        repositoryName: integration.repositoryName,
-        usageInstructions: integration.usageInstructions
-    };
-}
-
-// Re-export nexus types that users might need
-export { nexus }; 
