@@ -6,7 +6,7 @@ Purpose: Minimal ECR pull-through cache rule to integrate with the Echo registry
 
 ```hcl
 module "echo_ecr_cache" {
-  source = "./echo-terraform-ecr-mirror"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror"
 
   echo_registry_account_id = "123456789012"
   echo_registry_region     = "us-east-1" # default

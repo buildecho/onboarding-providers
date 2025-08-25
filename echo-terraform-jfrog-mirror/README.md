@@ -6,7 +6,7 @@ Purpose: Terraform module to configure JFrog Artifactory as a proxy cache for Ec
 
 ```hcl
 module "echo_artifactory_mirror" {
-  source = "./echo-terraform-jfrog-mirror"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-jfrog-mirror"
 
   echo_access_key_name     = var.echo_access_key_name
   echo_access_key_value    = var.echo_access_key_value

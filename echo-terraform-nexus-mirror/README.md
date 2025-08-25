@@ -6,7 +6,7 @@ Purpose: Minimal Nexus Docker proxy repository to integrate with the Echo regist
 
 ```hcl
 module "nexus_echo_proxy" {
-  source = "./echo-terraform-nexus-mirror"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-nexus-mirror"
 
   echo_access_key_name  = "your-echo-access-key-name"
   echo_access_key_value = "your-echo-access-key-value"

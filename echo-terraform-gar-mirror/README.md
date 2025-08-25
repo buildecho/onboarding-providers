@@ -6,7 +6,7 @@ Purpose: Minimal GAR remote repository to integrate with the Echo registry.
 
 ```hcl
 module "echo_gar_remote" {
-  source = "./echo-terraform-gar-mirror"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-gar-mirror"
 
   project_id            = "my-gcp-project"
   echo_access_key_name  = "my-echo-key-name"
