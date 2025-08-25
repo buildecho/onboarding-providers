@@ -5,11 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'pulumi/ecr-pullthrough-cache/**'
-      - 'pulumi/gcp-gar-remote/**'
-      - 'pulumi/harbor-integration/**'
-      - 'pulumi/jfrog-integration/**'
-      - 'pulumi/nexus-integration/**'
+      - 'echo-pulumi-ecr-mirror/**'
+      - 'echo-pulumi-gar-mirror/**'
+      - 'echo-pulumi-harbor-mirror/**'
+      - 'echo-pulumi-jfrog-mirror/**'
+      - 'echo-pulumi-nexus-mirror/**'
       - '.github/workflows/publish-pulumi-packages.yml'
   workflow_dispatch:
     inputs:
@@ -18,11 +18,11 @@ on:
         required: true
         type: choice
         options:
-          - ecr-pullthrough-cache
-          - gcp-gar-remote
-          - harbor-integration
-          - jfrog-integration
-          - nexus-integration
+          - ecr-mirror
+          - gar-mirror
+          - harbor-mirror
+          - jfrog-mirror
+          - nexus-mirror
           - all
       version_bump:
         description: 'Version bump type (patch, minor, major)'
@@ -55,7 +55,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.package }}" == "all" ]; then
-              echo 'packages=["ecr-pullthrough-cache", "gcp-gar-remote", "harbor-integration", "jfrog-integration", "nexus-integration"]' >> $GITHUB_OUTPUT
+              echo 'packages=["ecr-mirror", "gar-mirror", "harbor-mirror", "jfrog-mirror", "nexus-mirror"]' >> $GITHUB_OUTPUT
             else
               echo 'packages=["${{ github.event.inputs.package }}"]' >> $GITHUB_OUTPUT
             fi
@@ -64,33 +64,33 @@ jobs:
             PACKAGES="[]"
             
             # Check if ECR package changed
-            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/ecr-pullthrough-cache/"; then
-              PACKAGES=$(echo $PACKAGES | jq '. += ["ecr-pullthrough-cache"]')
+            if git diff --name-only HEAD~1 HEAD | grep -q "echo-pulumi-ecr-mirror/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["ecr-mirror"]')
             fi
             
             # Check if GAR package changed
-            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/gcp-gar-remote/"; then
-              PACKAGES=$(echo $PACKAGES | jq '. += ["gcp-gar-remote"]')
+            if git diff --name-only HEAD~1 HEAD | grep -q "echo-pulumi-gar-mirror/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["gar-mirror"]')
             fi
             
             # Check if Harbor package changed
-            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/harbor-integration/"; then
-              PACKAGES=$(echo $PACKAGES | jq '. += ["harbor-integration"]')
+            if git diff --name-only HEAD~1 HEAD | grep -q "echo-pulumi-harbor-mirror/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["harbor-mirror"]')
             fi
             
             # Check if JFrog package changed
-            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/jfrog-integration/"; then
-              PACKAGES=$(echo $PACKAGES | jq '. += ["jfrog-integration"]')
+            if git diff --name-only HEAD~1 HEAD | grep -q "echo-pulumi-jfrog-mirror/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["jfrog-mirror"]')
             fi
             
             # Check if Nexus package changed
-            if git diff --name-only HEAD~1 HEAD | grep -q "pulumi/nexus-integration/"; then
-              PACKAGES=$(echo $PACKAGES | jq '. += ["nexus-integration"]')
+            if git diff --name-only HEAD~1 HEAD | grep -q "echo-pulumi-nexus-mirror/"; then
+              PACKAGES=$(echo $PACKAGES | jq '. += ["nexus-mirror"]')
             fi
             
             # Check if workflow itself changed (publish all packages)
             if git diff --name-only HEAD~1 HEAD | grep -q ".github/workflows/publish-pulumi-packages.yml"; then
-              PACKAGES='["ecr-pullthrough-cache", "gcp-gar-remote", "harbor-integration", "jfrog-integration", "nexus-integration"]'
+              PACKAGES='["ecr-mirror", "gar-mirror", "harbor-mirror", "jfrog-mirror", "nexus-mirror"]'
             fi
             
             # Ensure the output is on a single line by using jq -c (compact)
@@ -121,8 +121,6 @@ jobs:
         uses: actions/setup-node@v4.1.0
         with:
           node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@buildecho'
       
       - name: Configure Git
         run: |
@@ -131,17 +129,7 @@ jobs:
       
       - name: Bump versions for all packages
         id: bump_all
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure npm for authentication
-          npm config set @buildecho:registry https://npm.pkg.github.com
-          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
-          
-          # Test authentication
-          echo "Testing npm authentication..."
-          npm whoami --registry=https://npm.pkg.github.com || echo "Authentication test failed"
-          
           # Initialize version info JSON
           VERSION_INFO='{}'
           PACKAGES='${{ needs.detect-changes.outputs.packages }}'
@@ -151,7 +139,7 @@ jobs:
           # Process each package
           for package in $(echo $PACKAGES | jq -r '.[]'); do
             echo "Processing $package..."
-            cd "$GITHUB_WORKSPACE/pulumi/$package"
+            cd "$GITHUB_WORKSPACE/echo-pulumi-$package"
             
             # Get current version and package name
             CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -159,23 +147,8 @@ jobs:
             
             echo "Current version for $PACKAGE_NAME: $CURRENT_VERSION"
             
-            # Check if version exists on GitHub Packages
-            NEEDS_BUMP=false
-            echo "Checking if ${PACKAGE_NAME}@${CURRENT_VERSION} exists on GitHub Packages..."
-            
-            # Try to get all versions to debug
-            echo "Available versions:"
-            npm view "${PACKAGE_NAME}" versions --json 2>&1 || echo "No versions found or package doesn't exist"
-            
-            if npm view "${PACKAGE_NAME}@${CURRENT_VERSION}" version 2>/dev/null; then
-              NEEDS_BUMP=true
-              echo "Version $CURRENT_VERSION already exists, will bump"
-            else
-              echo "Version $CURRENT_VERSION not yet published"
-            fi
-            
-            # Bump version if needed or if workflow_dispatch
-            if [ "$NEEDS_BUMP" = "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Bump version if workflow_dispatch
+            if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
               npm version $BUMP_TYPE --no-git-tag-version
               NEW_VERSION=$(node -p "require('./package.json').version")
               echo "Bumped to version $NEW_VERSION"
@@ -186,25 +159,25 @@ jobs:
             
             # Determine tag prefix
             case "$package" in
-              "ecr-pullthrough-cache")
-                TAG_PREFIX="pulumi-ecr-cache"
-                DISPLAY_NAME="Pulumi ECR Cache"
+              "ecr-mirror")
+                TAG_PREFIX="echo-pulumi-ecr-mirror"
+                DISPLAY_NAME="Echo Pulumi ECR Mirror"
                 ;;
-              "gcp-gar-remote")
-                TAG_PREFIX="pulumi-gar-remote"
-                DISPLAY_NAME="Pulumi GAR Remote"
+              "gar-mirror")
+                TAG_PREFIX="echo-pulumi-gar-mirror"
+                DISPLAY_NAME="Echo Pulumi GAR Mirror"
                 ;;
-              "harbor-integration")
-                TAG_PREFIX="pulumi-harbor-integration"
-                DISPLAY_NAME="Pulumi Harbor Integration"
+              "harbor-mirror")
+                TAG_PREFIX="echo-pulumi-harbor-mirror"
+                DISPLAY_NAME="Echo Pulumi Harbor Mirror"
                 ;;
-              "jfrog-integration")
-                TAG_PREFIX="pulumi-jfrog-integration"
-                DISPLAY_NAME="Pulumi JFrog Integration"
+              "jfrog-mirror")
+                TAG_PREFIX="echo-pulumi-jfrog-mirror"
+                DISPLAY_NAME="Echo Pulumi JFrog Mirror"
                 ;;
-              "nexus-integration")
-                TAG_PREFIX="pulumi-nexus-integration"
-                DISPLAY_NAME="Pulumi Nexus Integration"
+              "nexus-mirror")
+                TAG_PREFIX="echo-pulumi-nexus-mirror"
+                DISPLAY_NAME="Echo Pulumi Nexus Mirror"
                 ;;
             esac
             
@@ -238,7 +211,7 @@ jobs:
             cd "$GITHUB_WORKSPACE"
             
             # Find and add all modified package files
-            FILES_TO_ADD=$(find pulumi -name "package.json" -o -name "package-lock.json")
+            FILES_TO_ADD=$(find echo-pulumi-* -name "package.json" -o -name "package-lock.json")
             if [ -n "$FILES_TO_ADD" ]; then
               echo "Adding files:"
               echo "$FILES_TO_ADD"
@@ -272,7 +245,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: pulumi/${{ matrix.package }}
+        working-directory: echo-pulumi-${{ matrix.package }}
     
     steps:
       - name: Checkout repository
@@ -285,9 +258,8 @@ jobs:
         uses: actions/setup-node@v4.1.0
         with:
           node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
           cache: 'npm'
-          cache-dependency-path: pulumi/${{ matrix.package }}/package-lock.json
+          cache-dependency-path: echo-pulumi-${{ matrix.package }}/package-lock.json
       
       - name: Install dependencies
         run: npm ci
@@ -317,18 +289,6 @@ jobs:
           git tag "${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}"
           git push origin "${{ steps.version_info.outputs.tag_prefix }}-v${{ steps.version_info.outputs.new_version }}"
       
-      - name: Publish to GitHub Packages (dry run)
-        if: github.event.inputs.dry_run == 'true'
-        run: npm publish --dry-run --registry=https://npm.pkg.github.com
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Publish to GitHub Packages
-        if: github.event.inputs.dry_run != 'true'
-        run: npm publish --registry=https://npm.pkg.github.com
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
       - name: Create GitHub Release
         if: steps.version_info.outputs.was_bumped == 'true' && github.event.inputs.dry_run != 'true'
         uses: softprops/action-gh-release@v2.2.0
@@ -340,11 +300,8 @@ jobs:
             
             ### Installation
             ```bash
-            # Configure npm to use GitHub Packages for @buildecho scope
-            npm config set @buildecho:registry https://npm.pkg.github.com
-            
-            # Install the package
-            npm install ${{ steps.version_info.outputs.package_name }}@${{ steps.version_info.outputs.new_version }}
+            # Reference this component in your Pulumi program
+            # See the component documentation for usage examples
             ```
             
             ### Changes
@@ -375,4 +332,4 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Package Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Registry**: GitHub Packages (npm.pkg.github.com)" >> $GITHUB_STEP_SUMMARY 
+          echo "- **Distribution**: Git tags and GitHub releases" >> $GITHUB_STEP_SUMMARY 

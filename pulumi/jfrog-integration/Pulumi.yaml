@@ -1,3 +1,0 @@
-name: jfrog-integration
-runtime: nodejs
-description: Pulumi component for integrating JFrog Artifactory with Echo registry 

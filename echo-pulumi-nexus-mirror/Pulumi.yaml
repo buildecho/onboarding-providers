@@ -1,0 +1,3 @@
+name: echo-pulumi-nexus-mirror
+runtime: nodejs
+description: Sonatype Nexus integration with Echo registry for Docker proxy repository 

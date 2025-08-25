@@ -1,7 +1,0 @@
-# Example Terraform variables file for JFrog Echo integration
-# Copy this file to terraform.tfvars and fill in your actual values
-
-artifactory_url          = "https://your-artifactory-instance.com/artifactory"
-artifactory_access_token = "your-artifactory-access-token"
-echo_access_key_name     = "your-echo-access-key-name"
-echo_access_key_value    = "your-echo-access-key-value" 

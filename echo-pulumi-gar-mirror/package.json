@@ -1,0 +1,57 @@
+{
+  "name": "@echo/pulumi-gcp-gar-remote",
+  "version": "1.0.0",
+  "description": "Pulumi component for setting up GCP Artifact Registry remote repository to integrate with Echo registry",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "PulumiPlugin.yaml",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "pulumi",
+    "gcp",
+    "google-cloud",
+    "artifact-registry",
+    "echo",
+    "echo-registry",
+    "remote-repository",
+    "container-registry",
+    "mirror"
+  ],
+  "author": "Echo Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buildecho/onboarding-providers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/buildecho/onboarding-providers/issues"
+  },
+  "homepage": "https://github.com/buildecho/onboarding-providers#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/gcp": "^7.0.0",
+    "@pulumi/pulumi": "^3.113.0"
+  },
+  "peerDependencies": {
+    "@pulumi/gcp": "^7.0.0",
+    "@pulumi/pulumi": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

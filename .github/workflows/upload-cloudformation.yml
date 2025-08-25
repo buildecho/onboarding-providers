@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'cloudformation/ecr-pullthrough-cache/template.yaml'
+      - 'echo-cloudformation-ecr-mirror/template.yaml'
   pull_request:
     branches:
       - main
     paths:
-      - 'cloudformation/ecr-pullthrough-cache/template.yaml'
+      - 'echo-cloudformation-ecr-mirror/template.yaml'
   workflow_dispatch:
 
 # These permissions are needed to interact with GitHub's OIDC Token endpoint
@@ -20,7 +20,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  TEMPLATE_FILE: cloudformation/ecr-pullthrough-cache/template.yaml
+  TEMPLATE_FILE: echo-cloudformation-ecr-mirror/template.yaml
   S3_KEY: ecr-pullthrough-cache.yaml
 
 jobs:
@@ -70,6 +70,7 @@ jobs:
             --region ${{ env.AWS_REGION }}
           
       - name: Upload template to S3
+        if: github.ref == 'refs/heads/main'
         run: |
           echo "Uploading CloudFormation template to S3..."
           aws s3 cp ${{ env.TEMPLATE_FILE }} \
@@ -81,6 +82,7 @@ jobs:
           
       - name: Generate template URL
         id: template-url
+        if: github.ref == 'refs/heads/main'
         run: |
           BUCKET_NAME="${{ steps.extract-bucket.outputs.bucket-name }}"
           TEMPLATE_URL="https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${S3_KEY}"
@@ -88,7 +90,7 @@ jobs:
           echo "📋 Template URL: $TEMPLATE_URL"
           
       - name: Create deployment summary
-        if: always()
+        if: github.ref == 'refs/heads/main'
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           # CloudFormation Template Upload Summary

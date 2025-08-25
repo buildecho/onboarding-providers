@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECR Pullthrough Cache Rule for private registry integration'
+
+Parameters:
+  EchoRegistryAccountId:
+    Type: String
+    Description: 'The AWS account ID of the source ECR registry (Echo registry) - Get this from Echo platform'
+    AllowedPattern: '^[0-9]{12}$'
+    ConstraintDescription: 'Must be a valid 12-digit AWS account ID'
+  
+  EchoRegistryRegion:
+    Type: String
+    Description: 'The AWS region of the source ECR registry (Echo registry) - Get this from Echo platform'
+    Default: 'us-east-1'
+    AllowedValues:
+      - us-east-1
+  
+  CacheNamespacePrefix:
+    Type: String
+    Description: 'Prefix for cached repository names - This will be the prefix in your registry. for example /echo/node:latest'
+    Default: 'echo'
+  
+  IAMRoleName:
+    Type: String
+    Description: 'Name for the IAM role used by the pullthrough cache'
+    Default: 'echo-mirror-role'
+  
+  IAMPolicyName:
+    Type: String
+    Description: 'Name for the IAM policy attached to the role'
+    Default: 'echo-mirror-policy'
+  
+  ResourceNameSuffix:
+    Type: String
+    Description: 'Optional suffix to append to resource names for uniqueness'
+    Default: ''
+    AllowedPattern: '^[a-zA-Z0-9-]*$'
+    ConstraintDescription: 'Must contain only letters, numbers, and hyphens'
+
+Conditions:
+  HasResourceNameSuffix: !Not [!Equals [!Ref ResourceNameSuffix, '']]
+
+Resources:
+  ECRPullthroughCacheRule:
+    Type: AWS::ECR::PullThroughCacheRule
+    Properties:
+      EcrRepositoryPrefix: !Ref CacheNamespacePrefix
+      UpstreamRegistry: 'ecr'
+      UpstreamRegistryUrl: !Sub '${EchoRegistryAccountId}.dkr.ecr.${EchoRegistryRegion}.amazonaws.com'
+      UpstreamRepositoryPrefix: 'ROOT'
+      # Use CustomRoleArn for ECR private-to-private pullthrough cache
+      CustomRoleArn: !GetAtt ECRAccessRole.Arn
+
+  # IAM Role for ECR access
+  ECRAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !If
+        - HasResourceNameSuffix
+        - !Sub '${IAMRoleName}-${ResourceNameSuffix}'
+        - !Ref IAMRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pullthroughcache.ecr.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !If
+            - HasResourceNameSuffix
+            - !Sub '${IAMPolicyName}-${ResourceNameSuffix}'
+            - !Ref IAMPolicyName
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchImportUpstreamImage
+                  - ecr:GetImageCopyStatus
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: '*'
+
+Outputs:
+  RepositoryPrefix:
+    Description: 'Repository prefix for cached images'
+    Value: !Ref CacheNamespacePrefix
+    Export:
+      Name: !Sub '${AWS::StackName}-Repository-Prefix'
+  
+  AccessRoleArn:
+    Description: 'ARN of the ECR access role'
+    Value: !GetAtt ECRAccessRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-Access-Role-Arn'
+  
+  MirrorUrl:
+    Description: 'Base URL of the mirror in your account'
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}'
+    Export:
+      Name: !Sub '${AWS::StackName}-Mirror-Url'
+
+  CacheRuleId:
+    Description: 'Identifier of the ECR PullThroughCacheRule (Ref value)'
+    Value: !Ref ECRPullthroughCacheRule
+    Export:
+      Name: !Sub '${AWS::StackName}-Cache-Rule-Id'
+
+  UsageInstruction:
+    Description: 'Single-line usage instruction for pulling via the mirror'
+    Value: !Sub 'docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/<image>:<tag>'
