@@ -1,6 +1,8 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as nexus from "@pulumi/nexus";
 
+export {RepositoryDockerProxy} from "@pulumi/nexus"
+
 
 /**
  * Configuration options for the Echo Nexus Integration
