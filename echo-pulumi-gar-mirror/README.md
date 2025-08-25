@@ -4,12 +4,12 @@ Purpose: Minimal Pulumi component to set up a GCP Artifact Registry remote repos
 
 ## Install
 ```bash
-pulumi package add @echo/pulumi-gcp-gar-remote
+pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-gar-mirror@main
 ```
 
 ## Usage
 ```ts
-import { GcpGarRemote } from "@echo/pulumi-gcp-gar-remote";
+import { GcpGarRemote } from "echo-pulumi-gar-mirror";
 
 const remote = new GcpGarRemote("echo-remote", {
   projectId: "my-gcp-project",

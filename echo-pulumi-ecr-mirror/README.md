@@ -4,7 +4,7 @@ Purpose: Minimal Pulumi component to set up AWS ECR pull-through cache for Echo.
 
 ## Install
 ```bash
-pulumi package add @echo/pulumi-ecr-pullthrough-cache
+pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-ecr-mirror@main
 ```
 
 ## Usage

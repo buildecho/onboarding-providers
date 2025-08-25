@@ -86,8 +86,8 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
     public readonly policyArn: pulumi.Output<string>;
     public readonly usageInstruction: pulumi.Output<string>;
     
-    constructor(name: string, config: EcrPullThroughCacheConfig, opts?: pulumi.ComponentResourceOptions) {
-        super("echo:ecr:PullThroughCache", name, {}, opts);
+    constructor(name: string, config: EcrPullThroughCacheConfig,args?: pulumi.ComponentResourceOptions, opts?: pulumi.ComponentResourceOptions) {
+        super("echo:ecr:PullThroughCache", name, args, opts);
         
         // Set defaults
         const echoRegistryRegion = config.echoRegistryRegion || "us-east-1";
