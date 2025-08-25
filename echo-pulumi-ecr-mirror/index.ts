@@ -169,32 +169,3 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
     }
     
 }
-
-/**
- * Helper function to create ECR pull-through cache with minimal configuration
- * 
- * @example
- * ```typescript
- * import { createEcrPullThroughCache } from "@echo/pulumi-ecr-cache";
- * 
- * const cache = createEcrPullThroughCache("echo-cache", {
- *     echoRegistryAccountId: "123456789012"
- * });
- * ```
- */
-export function createEcrPullThroughCache(
-    name: string, 
-    config: EcrPullThroughCacheConfig, 
-    opts?: pulumi.ComponentResourceOptions
-): EcrPullThroughCacheOutputs {
-    const cache = new EcrPullThroughCache(name, config, opts);
-    
-    return {
-        roleArn: cache.roleArn,
-        policyArn: cache.policyArn,
-        usageInstruction: cache.usageInstruction
-    };
-}
-
-// Re-export AWS types that users might need
-export { aws }; 
