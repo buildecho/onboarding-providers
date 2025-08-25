@@ -86,16 +86,16 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
     public readonly policyArn: pulumi.Output<string>;
     public readonly usageInstruction: pulumi.Output<string>;
     
-    constructor(name: string, config: EcrPullThroughCacheConfig,args?: pulumi.ComponentResourceOptions, opts?: pulumi.ComponentResourceOptions) {
+    constructor(name: string, args: EcrPullThroughCacheConfig,opts?: pulumi.ComponentResourceOptions) {
         super("echo:ecr:PullThroughCache", name, args, opts);
         
         // Set defaults
-        const echoRegistryRegion = config.echoRegistryRegion || "us-east-1";
-        const cacheNamespace = config.cacheNamespace || "echo";
-        const roleName = config.roleName || "echo-ecr-mirror-role"
-        const policyName = config.policyName || "echo-ecr-mirror-policy"
+        const echoRegistryRegion = args.echoRegistryRegion || "us-east-1";
+        const cacheNamespace = args.cacheNamespace || "echo";
+        const roleName = args.roleName || "echo-ecr-mirror-role"
+        const policyName = args.policyName || "echo-ecr-mirror-policy"
         
-        const tags = { ...config.tags };
+        const tags = { ...args.tags };
         
         // Get current AWS environment
         const current = aws.getCallerIdentity({});
@@ -150,7 +150,7 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
         // Create the pull-through cache rule
         const cacheRule = new aws.ecr.PullThroughCacheRule(`${name}-rule`, {
             ecrRepositoryPrefix: cacheNamespace,
-            upstreamRegistryUrl: `${config.echoRegistryAccountId}.dkr.ecr.${echoRegistryRegion}.amazonaws.com`,
+            upstreamRegistryUrl: `${args.echoRegistryAccountId}.dkr.ecr.${echoRegistryRegion}.amazonaws.com`,
             customRoleArn: ecrPullThroughCacheRole.arn
         }, { parent: this, dependsOn: [ecrPullThroughCacheRole, ecrPullPolicy] });
         
