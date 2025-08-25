@@ -4,12 +4,12 @@ Purpose: Minimal Pulumi component to set up JFrog Artifactory remote repository 
 
 ## Install
 ```bash
-pulumi package add @buildecho/pulumi-onboarding-providers-jfrog-integration
+pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-jfrog-mirror
 ```
 
 ## Usage
 ```ts
-import { JfrogIntegration } from "@buildecho/pulumi-onboarding-providers-jfrog-integration";
+import { JfrogIntegration } from "@buildecho/echo-pulumi-jfrog-mirror";
 
 const integration = new JfrogIntegration("echo-integration", {
   echoAccessKeyName: "your-echo-username",

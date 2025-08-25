@@ -4,7 +4,7 @@ import * as artifactory from "@pulumi/artifactory";
 /**
  * Configuration options for the JFrog Integration with Echo Registry
  */
-export interface JfrogIntegrationConfig {
+export interface JfrogIntegrationInput {
     /**
      * The key (name) for the remote repository in Artifactory
      * @default "echo"
@@ -159,7 +159,7 @@ export interface JfrogIntegrationOutputs {
  * 
  * @example
  * ```typescript
- * import { JfrogIntegration } from "@echo/pulumi-jfrog-integration";
+ * import { JfrogIntegration } from "@buildecho/echo-pulumi-jfrog-mirror";
  * 
  * const integration = new JfrogIntegration("echo-integration", {
  *     echoAccessKeyName: config.requireSecret("echoAccessKeyName"),
@@ -174,36 +174,36 @@ export class JfrogIntegration extends pulumi.ComponentResource {
     public readonly repositoryUrl: pulumi.Output<string>;
     public readonly usageInstructions: pulumi.Output<string>;
 
-    constructor(name: string, config: JfrogIntegrationConfig, opts?: pulumi.ComponentResourceOptions) {
-        super("echo:jfrog:Integration", name, {}, opts);
+    constructor(name: string, args: JfrogIntegrationInput, opts?: pulumi.ComponentResourceOptions) {
+        super("echo-pulumi-jfrog-mirror:index:JfrogIntegration", name, args, opts);
 
         // Set defaults
-        const repositoryKey = config.remoteRepositoryKey || "echo";
-        const echoRegistryUrl = config.echoRegistryUrl || "https://reg.echohq.com";
-        const description = config.description || "Echo Registry remote repository for container images";
-        const notes = config.notes || "Managed by Pulumi - Echo Registry integration";
-        const includesPattern = config.includesPattern || "**/*";
-        const excludesPattern = config.excludesPattern || "";
-        const repoLayoutRef = config.repoLayoutRef || "simple-default";
-        const blockMismatchingMimeTypes = config.blockMismatchingMimeTypes ?? true;
-        const enableTokenAuthentication = config.enableTokenAuthentication ?? true;
-        const storeArtifactsLocally = config.storeArtifactsLocally ?? true;
-        const socketTimeoutMillis = config.socketTimeoutMillis || 15000;
-        const retrievalCachePeriodSeconds = config.retrievalCachePeriodSeconds || 7200;
-        const missedCachePeriodSeconds = config.missedCachePeriodSeconds || 1800;
-        const hardFail = config.hardFail ?? false;
-        const offline = config.offline ?? false;
-        const bypassHeadRequests = config.bypassHeadRequests ?? false;
-        const priorityResolution = config.priorityResolution ?? false;
-        const xrayIndex = config.xrayIndex ?? false;
-        const propertySets = config.propertySets || ["artifactory"];
+        const repositoryKey = args.remoteRepositoryKey || "echo";
+        const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
+        const description = args.description || "Echo Registry remote repository for container images";
+        const notes = args.notes || "Managed by Pulumi - Echo Registry integration";
+        const includesPattern = args.includesPattern || "**/*";
+        const excludesPattern = args.excludesPattern || "";
+        const repoLayoutRef = args.repoLayoutRef || "simple-default";
+        const blockMismatchingMimeTypes = args.blockMismatchingMimeTypes ?? true;
+        const enableTokenAuthentication = args.enableTokenAuthentication ?? true;
+        const storeArtifactsLocally = args.storeArtifactsLocally ?? true;
+        const socketTimeoutMillis = args.socketTimeoutMillis || 15000;
+        const retrievalCachePeriodSeconds = args.retrievalCachePeriodSeconds || 7200;
+        const missedCachePeriodSeconds = args.missedCachePeriodSeconds || 1800;
+        const hardFail = args.hardFail ?? false;
+        const offline = args.offline ?? false;
+        const bypassHeadRequests = args.bypassHeadRequests ?? false;
+        const priorityResolution = args.priorityResolution ?? false;
+        const xrayIndex = args.xrayIndex ?? false;
+        const propertySets = args.propertySets || ["artifactory"];
 
         // Create the remote Docker repository
         const remoteRepository = new artifactory.RemoteDockerRepository(`${name}-remote`, {
             key: repositoryKey,
             url: echoRegistryUrl,
-            username: config.echoAccessKeyName,
-            password: config.echoAccessKeyValue,
+            username: args.echoAccessKeyName,
+            password: args.echoAccessKeyValue,
             description: description,
             notes: notes,
             includesPattern: includesPattern,
@@ -241,32 +241,3 @@ export class JfrogIntegration extends pulumi.ComponentResource {
     }
 
 }
-
-/**
- * Helper function to create JFrog integration with minimal configuration
- * 
- * @example
- * ```typescript
- * import { createJfrogIntegration } from "@echo/pulumi-jfrog-integration";
- * 
- * const integration = createJfrogIntegration("echo-integration", {
- *     echoAccessKeyName: "my-echo-username",
- *     echoAccessKeyValue: "my-echo-password"
- * });
- * ```
- */
-export function createJfrogIntegration(
-    name: string,
-    config: JfrogIntegrationConfig,
-    opts?: pulumi.ComponentResourceOptions
-): JfrogIntegrationOutputs {
-    const integration = new JfrogIntegration(name, config, opts);
-
-    return {
-        repositoryUrl: integration.repositoryUrl,
-        usageInstructions: integration.usageInstructions
-    };
-}
-
-// Re-export artifactory types that users might need
-export { artifactory };

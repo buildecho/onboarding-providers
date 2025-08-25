@@ -1,3 +1,0 @@
-name: echo-pulumi-jfrog-mirror
-runtime: nodejs
-description: Pulumi component for integrating JFrog Artifactory with Echo registry 
