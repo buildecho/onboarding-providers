@@ -36,7 +36,7 @@ export interface NexusIntegrationInput {
     /**
      * Docker configuration options
      */
-    dockerConfig?: {
+    dockerConfig?: pulumi.Input<{
         /**
          * Force basic authentication
          * @default true
@@ -63,13 +63,13 @@ export interface NexusIntegrationInput {
          * Subdomain for Docker repository connector
          */
         subdomain?: string;
-    };
+    }>;
     
     /**
      * Type of Docker index (REGISTRY, HUB, or CUSTOM)
      * @default "REGISTRY"
      */
-    dockerIndexType?: "REGISTRY" | "HUB" | "CUSTOM";
+    dockerIndexType?: pulumi.Input<"REGISTRY" | "HUB" | "CUSTOM">;
     
     /**
      * URL of the Docker index (required if dockerIndexType is CUSTOM)
@@ -79,7 +79,7 @@ export interface NexusIntegrationInput {
     /**
      * Storage configuration
      */
-    storageConfig?: {
+    storageConfig?: pulumi.Input<{
         /**
          * Name of the blob store to use
          * @default "default"
@@ -91,12 +91,12 @@ export interface NexusIntegrationInput {
          * @default true
          */
         strictContentTypeValidation?: boolean;
-    };
+    }>;
     
     /**
      * Proxy configuration
      */
-    proxyConfig?: {
+    proxyConfig?: pulumi.Input<{
         /**
          * How long to cache content metadata (in minutes)
          * @default 1440
@@ -108,12 +108,12 @@ export interface NexusIntegrationInput {
          * @default 1440
          */
         metadataMaxAge?: number;
-    };
+    }>;
     
     /**
      * HTTP Client configuration
      */
-    httpClientConfig?: {
+    httpClientConfig?: pulumi.Input<{
         /**
          * Block outbound connections from this repository
          * @default false
@@ -165,12 +165,12 @@ export interface NexusIntegrationInput {
              */
             userAgentSuffix?: string;
         };
-    };
+    }>;
     
     /**
      * Negative cache configuration
      */
-    negativeCacheConfig?: {
+    negativeCacheConfig?: pulumi.Input<{
         /**
          * Enable negative cache
          * @default true
@@ -182,12 +182,12 @@ export interface NexusIntegrationInput {
          * @default 1440
          */
         ttl?: number;
-    };
+    }>;
     
     /**
      * Routing rule for this repository
      */
-    routingRule?: string;
+    routingRule?: pulumi.Input<string>;
     
     /**
      * Additional tags to apply to created resources
@@ -246,45 +246,55 @@ export class NexusIntegration extends pulumi.ComponentResource {
         const repositoryOnline = args.repositoryOnline ?? true;
         
         // Docker defaults
-        const dockerConfig = {
-            forceBasicAuth: args.dockerConfig?.forceBasicAuth ?? true,
-            httpPort: args.dockerConfig?.httpPort,
-            httpsPort: args.dockerConfig?.httpsPort,
-            v1Enabled: args.dockerConfig?.v1Enabled ?? false,
-            subdomain: args.dockerConfig?.subdomain
-        };
+        const dockerConfig = pulumi.all([args.dockerConfig]).apply(([dockerConfig]) => {
+            return {
+                forceBasicAuth: dockerConfig?.forceBasicAuth ?? true,
+                httpPort: dockerConfig?.httpPort ?? 2525,
+                httpsPort: dockerConfig?.httpsPort ?? 2525,
+                v1Enabled: dockerConfig?.v1Enabled ?? false,
+                subdomain: dockerConfig?.subdomain ?? "echo"
+            };
+        });
         
         // Storage defaults
-        const storageConfig = {
-            blobStoreName: args.storageConfig?.blobStoreName || "default",
-            strictContentTypeValidation: args.storageConfig?.strictContentTypeValidation ?? true
-        };
+        const storageConfig = pulumi.all([args.storageConfig]).apply(([storageConfig]) => {
+            return {
+                blobStoreName: storageConfig?.blobStoreName || "default",
+                strictContentTypeValidation: storageConfig?.strictContentTypeValidation ?? true
+            };
+        });
         
         // Proxy defaults
-        const proxyConfig = {
-            contentMaxAge: args.proxyConfig?.contentMaxAge ?? 1440,
-            metadataMaxAge: args.proxyConfig?.metadataMaxAge ?? 1440
-        };
+        const proxyConfig = pulumi.all([args.proxyConfig]).apply(([proxyConfig]) => {
+            return {
+                contentMaxAge: proxyConfig?.contentMaxAge ?? 1440,
+                metadataMaxAge: proxyConfig?.metadataMaxAge ?? 1440
+            };
+        });
         
         // HTTP Client defaults
-        const httpClientConfig = {
-            blocked: args.httpClientConfig?.blocked ?? false,
-            autoBlock: args.httpClientConfig?.autoBlock ?? true,
+        const httpClientConfig = pulumi.all([args.httpClientConfig]).apply(([httpClientConfig]) => {
+            return {
+            blocked: httpClientConfig?.blocked ?? false,
+            autoBlock: httpClientConfig?.autoBlock ?? true,
             connection: {
-                retries: args.httpClientConfig?.connection?.retries ?? 3,
-                timeout: args.httpClientConfig?.connection?.timeout ?? 60,
-                enableCircularRedirects: args.httpClientConfig?.connection?.enableCircularRedirects ?? false,
-                enableCookies: args.httpClientConfig?.connection?.enableCookies ?? false,
-                useTrustStore: args.httpClientConfig?.connection?.useTrustStore ?? false,
-                userAgentSuffix: args.httpClientConfig?.connection?.userAgentSuffix
-            }
-        };
+                retries: httpClientConfig?.connection?.retries ?? 3,
+                timeout: httpClientConfig?.connection?.timeout ?? 60,
+                enableCircularRedirects: httpClientConfig?.connection?.enableCircularRedirects ?? false,
+                enableCookies: httpClientConfig?.connection?.enableCookies ?? false,
+                useTrustStore: httpClientConfig?.connection?.useTrustStore ?? false,
+                userAgentSuffix: httpClientConfig?.connection?.userAgentSuffix ?? "echo-pulumi-nexus-mirror"
+                }
+            };
+        });
         
         // Negative cache defaults
-        const negativeCacheConfig = {
-            enabled: args.negativeCacheConfig?.enabled ?? true,
-            ttl: args.negativeCacheConfig?.ttl ?? 1440
-        };
+        const negativeCacheConfig = pulumi.all([args.negativeCacheConfig]).apply(([negativeCacheConfig]) => {
+            return {
+                enabled: negativeCacheConfig?.enabled ?? true,
+                ttl: negativeCacheConfig?.ttl ?? 1440
+            };
+        });
         
         // Create Nexus Docker proxy repository
         this.repository = new nexus.RepositoryDockerProxy(`${name}-repository`, {
@@ -293,11 +303,11 @@ export class NexusIntegration extends pulumi.ComponentResource {
             
             // Docker configuration
             docker: {
-                forceBasicAuth: dockerConfig.forceBasicAuth,
-                httpPort: dockerConfig.httpPort,
-                httpsPort: dockerConfig.httpsPort,
-                v1Enabled: dockerConfig.v1Enabled,
-                subdomain: dockerConfig.subdomain
+                forceBasicAuth: dockerConfig?.forceBasicAuth,
+                httpPort: dockerConfig?.httpPort,
+                httpsPort: dockerConfig?.httpsPort,
+                v1Enabled: dockerConfig?.v1Enabled,
+                subdomain: dockerConfig?.subdomain
             },
             
             // Docker proxy index configuration
@@ -308,30 +318,30 @@ export class NexusIntegration extends pulumi.ComponentResource {
             
             // Storage configuration
             storage: {
-                blobStoreName: storageConfig.blobStoreName,
-                strictContentTypeValidation: storageConfig.strictContentTypeValidation
+                blobStoreName: storageConfig?.blobStoreName,
+                strictContentTypeValidation: storageConfig?.strictContentTypeValidation
             },
             
             // Proxy configuration
             proxy: {
                 remoteUrl: echoRegistryUrl,
-                contentMaxAge: proxyConfig.contentMaxAge,
-                metadataMaxAge: proxyConfig.metadataMaxAge
+                contentMaxAge: proxyConfig?.contentMaxAge,
+                metadataMaxAge: proxyConfig?.metadataMaxAge
             },
             
             // HTTP client configuration
             httpClient: {
-                blocked: httpClientConfig.blocked,
-                autoBlock: httpClientConfig.autoBlock,
+                blocked: httpClientConfig?.blocked,
+                autoBlock: httpClientConfig?.autoBlock,
                 
                 // Connection settings
                 connection: {
-                    retries: httpClientConfig.connection.retries,
-                    timeout: httpClientConfig.connection.timeout,
-                    enableCircularRedirects: httpClientConfig.connection.enableCircularRedirects,
-                    enableCookies: httpClientConfig.connection.enableCookies,
-                    useTrustStore: httpClientConfig.connection.useTrustStore,
-                    userAgentSuffix: httpClientConfig.connection.userAgentSuffix
+                    retries: httpClientConfig?.connection?.retries,
+                    timeout: httpClientConfig?.connection?.timeout,
+                    enableCircularRedirects: httpClientConfig?.connection?.enableCircularRedirects,
+                    enableCookies: httpClientConfig?.connection?.enableCookies,
+                    useTrustStore: httpClientConfig?.connection?.useTrustStore,
+                    userAgentSuffix: httpClientConfig?.connection?.userAgentSuffix 
                 },
                 
                 // Authentication
@@ -344,8 +354,8 @@ export class NexusIntegration extends pulumi.ComponentResource {
             
             // Negative cache configuration
             negativeCache: {
-                enabled: negativeCacheConfig.enabled,
-                ttl: negativeCacheConfig.ttl
+                enabled: negativeCacheConfig?.enabled,
+                ttl: negativeCacheConfig?.ttl
             },
             
             // Routing rule
