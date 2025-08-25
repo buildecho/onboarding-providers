@@ -4,12 +4,12 @@ Purpose: Minimal Pulumi component to set up AWS ECR pull-through cache for Echo.
 
 ## Install
 ```bash
-pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-ecr-mirror@main
+pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-ecr-mirror
 ```
 
 ## Usage
 ```ts
-import { EcrPullThroughCache } from "@echo/pulumi-ecr-pullthrough-cache";
+import { EcrPullThroughCache } from "@buildecho/echo-pulumi-ecr-mirror";
 
 const cache = new EcrPullThroughCache("echo-cache", {
   echoRegistryAccountId: "123456789012",

@@ -104,7 +104,7 @@ export interface GcpGarRemoteOutputs {
  * 
  * @example
  * ```typescript
- * import { GcpGarRemote } from "@echo/pulumi-gcp-gar-remote";
+ * import { GcpGarRemote } from "@buildecho/echo-pulumi-gar-mirror";
  * 
  * const echoRemote = new GcpGarRemote("echo-remote", {
  *     projectId: "my-gcp-project",
@@ -113,8 +113,7 @@ export interface GcpGarRemoteOutputs {
  *     readerMembers: ["user:developer@example.com"]
  * });
  * 
- * export const repositoryUrl = echoRemote.repositoryUrl;
- * export const dockerPullExample = echoRemote.dockerPullExample;
+ * export const usage = echoRemote.usageInstruction;
  * ```
  */
 export class GcpGarRemote extends pulumi.ComponentResource {

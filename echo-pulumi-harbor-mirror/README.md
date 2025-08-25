@@ -4,7 +4,7 @@ Purpose: Minimal Pulumi component to set up Harbor proxy cache for Echo.
 
 ## Install
 ```bash
-pulumi package add @buildecho/echo-pulumi-harbor-mirror
+pulumi package add github.com/buildecho/onboarding-providers/echo-pulumi-harbor-mirror
 ```
 
 ## Usage
