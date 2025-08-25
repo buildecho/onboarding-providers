@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as nexus from "@pulumi/nexus";
 
+
 /**
  * Configuration options for the Echo Nexus Integration
  */
@@ -9,12 +10,12 @@ export interface NexusIntegrationInput {
      * The URL of the Echo registry
      * @default "https://reg.echohq.com"
      */
-    echoRegistryUrl?: string;
+    echoRegistryUrl?: pulumi.Input<string>;
     
     /**
      * The name of the Echo access key
      */
-    echoAccessKeyName: string;
+    echoAccessKeyName: pulumi.Input<string>;
     
     /**
      * The value of the Echo access key
@@ -25,13 +26,13 @@ export interface NexusIntegrationInput {
      * Name of the Docker proxy repository
      * @default "echo"
      */
-    repositoryName?: string;
+    repositoryName?: pulumi.Input<string>;
     
     /**
      * Whether this repository should be online
      * @default true
      */
-    repositoryOnline?: boolean;
+    repositoryOnline?: pulumi.Input<boolean>;
     
     /**
      * Docker configuration options
@@ -41,28 +42,28 @@ export interface NexusIntegrationInput {
          * Force basic authentication
          * @default true
          */
-        forceBasicAuth?: boolean;
+        forceBasicAuth?: pulumi.Input<boolean>;
         
         /**
          * HTTP port for Docker registry
          */
-        httpPort?: number;
+        httpPort?: pulumi.Input<number>;
         
         /**
          * HTTPS port for Docker registry
          */
-        httpsPort?: number;
+        httpsPort?: pulumi.Input<number>;
         
         /**
          * Enable Docker V1 API support
          * @default false
          */
-        v1Enabled?: boolean;
+        v1Enabled?: pulumi.Input<boolean>;
         
         /**
          * Subdomain for Docker repository connector
          */
-        subdomain?: string;
+        subdomain?: pulumi.Input<string>;
     }>;
     
     /**
@@ -74,7 +75,7 @@ export interface NexusIntegrationInput {
     /**
      * URL of the Docker index (required if dockerIndexType is CUSTOM)
      */
-    dockerIndexUrl?: string;
+    dockerIndexUrl?: pulumi.Input<string>;
     
     /**
      * Storage configuration
@@ -84,13 +85,13 @@ export interface NexusIntegrationInput {
          * Name of the blob store to use
          * @default "default"
          */
-        blobStoreName?: string;
+        blobStoreName?: pulumi.Input<string>;
         
         /**
          * Enable strict content type validation
          * @default true
          */
-        strictContentTypeValidation?: boolean;
+        strictContentTypeValidation?: pulumi.Input<boolean>;
     }>;
     
     /**
@@ -101,13 +102,13 @@ export interface NexusIntegrationInput {
          * How long to cache content metadata (in minutes)
          * @default 1440
          */
-        contentMaxAge?: number;
+        contentMaxAge?: pulumi.Input<number>;
         
         /**
          * How long to cache metadata (in minutes)
          * @default 1440
          */
-        metadataMaxAge?: number;
+        metadataMaxAge?: pulumi.Input<number>;
     }>;
     
     /**
@@ -118,53 +119,53 @@ export interface NexusIntegrationInput {
          * Block outbound connections from this repository
          * @default false
          */
-        blocked?: boolean;
+        blocked?: pulumi.Input<boolean>;
         
         /**
          * Auto-block outbound connections if remote repository is unreachable
          * @default true
          */
-        autoBlock?: boolean;
+        autoBlock?: pulumi.Input<boolean>;
         
         /**
          * Connection configuration
          */
-        connection?: {
+        connection?: pulumi.Input<{
             /**
              * Number of retries for connection attempts
              * @default 3
              */
-            retries?: number;
+            retries?: pulumi.Input<number>;
             
             /**
              * Connection timeout in seconds
              * @default 60
              */
-            timeout?: number;
+            timeout?: pulumi.Input<number>;
             
             /**
              * Enable circular redirects
              * @default false
              */
-            enableCircularRedirects?: boolean;
+            enableCircularRedirects?: pulumi.Input<boolean>;
             
             /**
              * Enable cookies
              * @default false
              */
-            enableCookies?: boolean;
+            enableCookies?: pulumi.Input<boolean>;
             
             /**
              * Use Nexus trust store for certificate validation
              * @default false
              */
-            useTrustStore?: boolean;
+            useTrustStore?: pulumi.Input<boolean>;
             
             /**
              * Custom user agent suffix
              */
-            userAgentSuffix?: string;
-        };
+            userAgentSuffix?: pulumi.Input<string>;
+        }>;
     }>;
     
     /**
@@ -175,13 +176,13 @@ export interface NexusIntegrationInput {
          * Enable negative cache
          * @default true
          */
-        enabled?: boolean;
+        enabled?: pulumi.Input<boolean>;
         
         /**
          * Negative cache TTL in minutes
          * @default 1440
          */
-        ttl?: number;
+        ttl?: pulumi.Input<number>;
     }>;
     
     /**
@@ -192,7 +193,7 @@ export interface NexusIntegrationInput {
     /**
      * Additional tags to apply to created resources
      */
-    tags?: Record<string, string>;
+    tags?: pulumi.Input<Record<string, string>>;
 }
 
 /**
