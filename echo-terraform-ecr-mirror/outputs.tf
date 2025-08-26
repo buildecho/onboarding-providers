@@ -4,12 +4,12 @@ data "aws_region" "current" {}
 
 output "role_arn" {
   description = "ARN of the ECR access role"
-  value       = var.create ? aws_iam_role.ecr_access[0].arn : null
+  value       = var.create ? try(aws_iam_role.ecr_access[0].arn, null) : null
 }
 
 output "policy_arn" {
   description = "ARN of the ECR access policy"
-  value       = var.create ? aws_iam_role_policy.ecr_pullthrough_cache[0].policy_arn : null
+  value       = var.create ? try(aws_iam_role_policy.ecr_pullthrough_cache[0].policy_arn, null) : null
 }
 
 
