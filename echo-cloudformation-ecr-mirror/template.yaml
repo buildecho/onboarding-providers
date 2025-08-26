@@ -89,30 +89,12 @@ Resources:
                 Resource: '*'
 
 Outputs:
-  RepositoryPrefix:
-    Description: 'Repository prefix for cached images'
-    Value: !Ref CacheNamespacePrefix
-    Export:
-      Name: !Sub '${AWS::StackName}-Repository-Prefix'
-  
   AccessRoleArn:
     Description: 'ARN of the ECR access role'
     Value: !GetAtt ECRAccessRole.Arn
     Export:
       Name: !Sub '${AWS::StackName}-Access-Role-Arn'
   
-  MirrorUrl:
-    Description: 'Base URL of the mirror in your account'
-    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}'
-    Export:
-      Name: !Sub '${AWS::StackName}-Mirror-Url'
-
-  CacheRuleId:
-    Description: 'Identifier of the ECR PullThroughCacheRule (Ref value)'
-    Value: !Ref ECRPullthroughCacheRule
-    Export:
-      Name: !Sub '${AWS::StackName}-Cache-Rule-Id'
-
   UsageInstruction:
     Description: 'Single-line usage instruction for pulling via the mirror'
     Value: !Sub 'docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/<image>:<tag>'
