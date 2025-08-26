@@ -1,5 +1,26 @@
 # Terraform version requirements moved to versions.tf
 
+# Enable required APIs
+resource "google_project_service" "secretmanager" {
+  count = var.create ? 1 : 0
+
+  project = var.project_id
+  service = "secretmanager.googleapis.com"
+
+  disable_dependent_services = false
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "artifactregistry" {
+  count = var.create ? 1 : 0
+
+  project = var.project_id
+  service = "artifactregistry.googleapis.com"
+
+  disable_dependent_services = false
+  disable_on_destroy         = false
+}
+
 # Secret Manager for Echo access key
 resource "google_secret_manager_secret" "echo_access_key" {
   count = var.create ? 1 : 0
@@ -13,6 +34,8 @@ resource "google_secret_manager_secret" "echo_access_key" {
   labels = merge(var.labels, {
     purpose = "echo-registry-authentication"
   })
+
+  depends_on = [google_project_service.secretmanager]
 }
 
 resource "google_secret_manager_secret_version" "echo_access_key" {
@@ -52,6 +75,8 @@ resource "google_artifact_registry_repository" "echo_remote_repo" {
   }
 
   labels = var.labels
+
+  depends_on = [google_project_service.artifactregistry]
 }
 
 # IAM binding for Secret Manager access (required for GAR to read the secret)
@@ -61,6 +86,8 @@ resource "google_secret_manager_secret_iam_member" "gar_secret_accessor" {
   secret_id = google_secret_manager_secret.echo_access_key[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+
+  depends_on = [google_project_service.artifactregistry]
 }
 
 # Data source to get current project number
