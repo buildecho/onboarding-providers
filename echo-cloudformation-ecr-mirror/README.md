@@ -28,10 +28,7 @@ aws cloudformation deploy \
 - `ResourceNameSuffix` (optional): Suffix appended to resource names
 
 ## Outputs
-- `MirrorUrl`: Base URL of your mirror
 - `AccessRoleArn`: ARN of the ECR access role
-- `CacheRuleId`: Identifier of the cache rule
-- `RepositoryPrefix`: Repository prefix for cached images
 - `UsageInstruction`: Single-line docker pull command template
 
 ## Verify
