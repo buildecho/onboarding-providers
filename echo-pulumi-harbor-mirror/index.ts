@@ -157,12 +157,15 @@ export class HarborIntegration extends pulumi.ComponentResource {
             
             this.registryId = registry.registryId;
             this.projectName = pulumi.output(projectName);
-            
+
+            const config = new pulumi.Config();
+            const harborUrl = config.get("harbor:url");
+
             // one line docker pull command
             this.usageInstructions = pulumi.all([
                 this.projectName,
             ]).apply(([proj]) => {
-                return pulumi.interpolate`docker pull <harbor-instance>/${proj}/static:latest`;
+                return pulumi.interpolate`docker pull ${harborUrl}/${proj}/static:latest`;
             });
         
         // Register outputs
