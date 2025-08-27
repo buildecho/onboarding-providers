@@ -67,5 +67,5 @@ output "how_to_use" {
 # Get usage instructions
 terraform output how_to_use
 
-# Example: docker pull <nexus-host>/<repository_name>/image:tag
+# Example: docker pull <nexus-host>:<port>/image:tag
 ``` 
