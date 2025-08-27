@@ -140,12 +140,6 @@ export interface JfrogIntegrationInput {
  */
 export interface JfrogIntegrationOutputs {
     /**
-     * The URL of the remote repository
-     */
-    repositoryUrl: pulumi.Output<string>;
-
-
-    /**
      * Human-readable usage instructions
      */
     usageInstructions: pulumi.Output<string>;
@@ -166,7 +160,6 @@ export interface JfrogIntegrationOutputs {
  *     echoAccessKeyValue: config.requireSecret("echoAccessKeyValue")
  * });
  * 
- * export const repositoryUrl = integration.repositoryUrl;
  * export const instructions = integration.usageInstructions;
  * ```
  */
