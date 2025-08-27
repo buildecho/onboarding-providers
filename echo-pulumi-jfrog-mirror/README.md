@@ -25,7 +25,7 @@ export const usageInstructions = integration.usageInstructions;
 ## Inputs
 - `echoAccessKeyName` (string, required): Echo Registry access key name (username)
 - `echoAccessKeyValue` (string, required): Echo Registry access key value (password)
-- `remoteRepositoryKey` (string, default: `echo`): The key (name) for the remote repository
+- `remoteRepositoryName` (string, default: `echo`): The name for the remote repository in Artifactory
 - `echoRegistryUrl` (string, default: `https://reg.echohq.com`): The URL of the Echo registry
 - `description` (string, default: `Echo Registry remote repository for container images`): Repository description
 - `notes` (string, default: `Managed by Pulumi - Echo Registry integration`): Internal notes about the repository
@@ -47,7 +47,6 @@ export const usageInstructions = integration.usageInstructions;
 - `tags` (Record<string, string>, optional): Additional tags to apply to created resources
 
 ## Outputs
-- `repositoryUrl`: URL of the JFrog remote repository
 - `usageInstructions`: Docker pull command template
 
 ## Test

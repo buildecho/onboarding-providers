@@ -9,7 +9,7 @@ export interface JfrogIntegrationInput {
      * The key (name) for the remote repository in Artifactory
      * @default "echo"
      */
-    remoteRepositoryKey?: string;
+    remoteRepositoryName?: string;
 
     /**
      * The URL of the Echo registry
@@ -171,14 +171,13 @@ export interface JfrogIntegrationOutputs {
  * ```
  */
 export class JfrogIntegration extends pulumi.ComponentResource {
-    public readonly repositoryUrl: pulumi.Output<string>;
     public readonly usageInstructions: pulumi.Output<string>;
 
     constructor(name: string, args: JfrogIntegrationInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-jfrog-mirror:index:JfrogIntegration", name, args, opts);
 
         // Set defaults
-        const repositoryKey = args.remoteRepositoryKey || "echo";
+        const repositoryName = args.remoteRepositoryName || "echo";
         const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
         const description = args.description || "Echo Registry remote repository for container images";
         const notes = args.notes || "Managed by Pulumi - Echo Registry integration";
@@ -200,7 +199,7 @@ export class JfrogIntegration extends pulumi.ComponentResource {
 
         // Create the remote Docker repository
         const remoteRepository = new artifactory.RemoteDockerRepository(`${name}-remote`, {
-            key: repositoryKey,
+            key: repositoryName,
             url: echoRegistryUrl,
             username: args.echoAccessKeyName,
             password: args.echoAccessKeyValue,
@@ -224,18 +223,11 @@ export class JfrogIntegration extends pulumi.ComponentResource {
         }, { parent: this });
 
         // Set outputs
-        this.repositoryUrl = pulumi.output(remoteRepository.url);
 
         // one line docker pull command
-        this.usageInstructions = pulumi.all([
-            this.repositoryUrl,
-        ]).apply(([url]) => {
-            return pulumi.interpolate`docker pull ${url}/static:latest`;
-        });
-
+        this.usageInstructions = pulumi.output(`docker pull <JFrog instance URL>/${repositoryName}/static:latest`);
         // Register outputs
         this.registerOutputs({
-            repositoryUrl: this.repositoryUrl,
             usageInstructions: this.usageInstructions
         });
     }

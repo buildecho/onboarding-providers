@@ -32,7 +32,6 @@ terraform init && terraform apply -auto-approve
 - `enable_token_authentication` (bool, default: `true`)
 
 ## Outputs
-- `repository_url`: The URL of the created remote repository
 - `usage_instructions`: Docker pull command template
 
 ## Example Usage

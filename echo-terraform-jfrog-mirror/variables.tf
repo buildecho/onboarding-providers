@@ -7,7 +7,7 @@ variable "create" {
 variable "repository_name" {
   type        = string
   description = "The name for the remote repository in Artifactory"
-  default     = "echo-mirror"
+  default     = "echo"
 }
 
 variable "echo_registry_url" {
