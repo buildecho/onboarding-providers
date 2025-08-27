@@ -165,7 +165,7 @@ export class HarborIntegration extends pulumi.ComponentResource {
             this.usageInstructions = pulumi.all([
                 this.projectName,
             ]).apply(([proj]) => {
-                return pulumi.interpolate`docker pull ${harborUrl}/${proj}/static:latest`;
+                return pulumi.interpolate`docker pull ${harborUrl ?? "<harbor-instance>"}/${proj}/static:latest`;
             });
         
         // Register outputs
