@@ -21,7 +21,7 @@ terraform init && terraform apply -auto-approve
 - `create` (bool, default: `true`)
 - `echo_access_key_name` (string, required)
 - `echo_access_key_value` (string, required)
-- `repository_name` (string, default: `"echo-mirror"`)
+- `repository_name` (string, default: `"echo"`)
 - `echo_registry_url` (string, default: `"https://reg.echohq.com"`)
 - `description` (string, default: `"Echo Registry remote repository for container images"`)
 - `notes` (string, default: `"Managed by Terraform - Echo Registry integration"`)
@@ -39,15 +39,13 @@ terraform init && terraform apply -auto-approve
 module "echo_artifactory_mirror" {
   source = "./echo-terraform-jfrog-mirror"
   
-  artifactory_url          = "https://my-company.jfrog.io/artifactory"
-  artifactory_access_token = var.artifactory_token
   echo_access_key_name     = var.echo_access_key_name
   echo_access_key_value    = var.echo_access_key_value
-  repository_key           = "echo-mirror"
+  repository_name          = "echo-mirror"
 }
 
-output "pull_url" {
-  value = module.echo_artifactory_mirror.pull_url
+output "usage" {
+  value = module.echo_artifactory_mirror.usage_instructions
 }
 ```
 

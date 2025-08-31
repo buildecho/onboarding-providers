@@ -19,7 +19,7 @@ export interface GcpGarRemoteInput {
     
     /**
      * Repository name for cached images - This will be the name of your repository
-     * @default "echo-mirror"
+     * @default "echo"
      */
     cacheRepositoryName?: string;
     
@@ -91,9 +91,9 @@ export interface GcpGarRemoteOutputs {
     secretVersionName: pulumi.Output<string>;
     
     /**
-     * Single-line usage instruction
+     * Single-line usage instructions
      */
-    usageInstruction: pulumi.Output<string>;
+    usageInstructions: pulumi.Output<string>;
 }
 
 /**
@@ -113,14 +113,14 @@ export interface GcpGarRemoteOutputs {
  *     readerMembers: ["user:developer@example.com"]
  * });
  * 
- * export const usage = echoRemote.usageInstruction;
+ * export const usage = echoRemote.usageInstructions;
  * ```
  */
 export class GcpGarRemote extends pulumi.ComponentResource {
     public readonly repositoryId: pulumi.Output<string>;
     public readonly secretId: pulumi.Output<string>;
     public readonly secretVersionName: pulumi.Output<string>;
-    public readonly usageInstruction: pulumi.Output<string>;
+    public readonly usageInstructions: pulumi.Output<string>;
     
     constructor(name: string, args: GcpGarRemoteInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-gar-mirror:index:GcpGarRemote", name, args, opts);
@@ -219,14 +219,14 @@ export class GcpGarRemote extends pulumi.ComponentResource {
         this.repositoryId = repository.repositoryId;
         this.secretId = secret.secretId;
         this.secretVersionName = echoAccessKeySecretVersion.name;
-        this.usageInstruction = pulumi.interpolate`docker pull ${repositoryUrl}/static:latest`;
+        this.usageInstructions = pulumi.interpolate`docker pull ${repositoryUrl}/static:latest`;
         
         // Register outputs
         this.registerOutputs({
             repositoryId: this.repositoryId,
             secretId: this.secretId,
             secretVersionName: this.secretVersionName,
-            usageInstruction: this.usageInstruction,
+            usageInstructions: this.usageInstructions,
         });
     }
 }

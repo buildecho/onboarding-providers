@@ -95,6 +95,6 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-Access-Role-Arn'
   
-  UsageInstruction:
-    Description: 'Single-line usage instruction for pulling via the mirror'
+  UsageInstructions:
+    Description: 'Usage instructions for pulling via the mirror'
     Value: !Sub 'docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${CacheNamespacePrefix}/<image>:<tag>'

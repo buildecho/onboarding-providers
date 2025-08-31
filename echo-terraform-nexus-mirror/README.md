@@ -45,7 +45,6 @@ terraform init && terraform apply -auto-approve
 - `tags` (map(string), optional)
 
 ## Outputs
-- `repository_name`: Name of the created Docker proxy repository
 - `usage_instructions`: Example Docker pull command
 
 ## Example usage

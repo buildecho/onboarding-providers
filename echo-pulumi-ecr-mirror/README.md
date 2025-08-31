@@ -15,27 +15,24 @@ const cache = new EcrPullThroughCache("echo-cache", {
   echoRegistryAccountId: "123456789012",
   echoRegistryRegion: "us-east-1", // default
   cacheNamespace: "echo",          // default
-  resourcePrefix: "echo-mirror"     // default
 });
 
-export const mirrorUrl = cache.mirrorUrl;
-export const usage = cache.usageInstruction;
+export const roleArn = cache.roleArn;
+export const usage = cache.usageInstructions;
 ```
 
 ## Inputs
 - `echoRegistryAccountId` (string, required)
 - `echoRegistryRegion` (string, default: `us-east-1`)
 - `cacheNamespace` (string, default: `echo`)
-- `resourcePrefix` (string, default: `echo-mirror`)
+- `roleName` (string, default: `echo-ecr-mirror-role`)
+- `policyName` (string, default: `echo-ecr-mirror-policy`)
 - `tags` (Record<string, string>, optional)
 
 ## Outputs
-- `mirrorUrl`: Base URL of your mirror
-- `roleArn`: ARN of the ECR access role
-- `cacheRuleId`: Identifier of the cache rule
-- `cacheRuleArn`: ARN of the cache rule
+- `roleArn`: ARN of the IAM role created for pull-through cache
 - `cacheNamespace`: Cache namespace used
-- `usageInstruction`: Single-line docker pull command template
+- `usageInstructions`: Usage instructions for pulling via the mirror
 
 ## Test
 ```bash

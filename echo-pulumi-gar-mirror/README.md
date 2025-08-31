@@ -20,7 +20,7 @@ const remote = new GcpGarRemote("echo-remote", {
   echoRegistryUrl: "https://reg.echohq.com" // default
 });
 
-export const usage = remote.usageInstruction;
+export const usage = remote.usageInstructions;
 ```
 
 ## Inputs
@@ -30,16 +30,17 @@ export const usage = remote.usageInstruction;
 - `echoAccessKeyName` (string, required)
 - `echoAccessKeyValue` (string, required, secret)
 - `echoRegistryUrl` (string, default: `https://reg.echohq.com`)
-- `labels` (Record<string, string>, optional)
+- `description` (string, default: `Remote repository for Echo Registry integration`)
 - `readerMembers` (string[], optional)
 - `writerMembers` (string[], optional)
 - `accessKeySecretName` (string, default: `echo-gar-mirror-secret`)
+- `labels` (Record<string, string>, optional)
 
 ## Outputs
 - `repositoryId`: GAR repository id
 - `secretId`: Secret Manager secret id
 - `secretVersionName`: Secret version name
-- `usageInstruction`: Single-line docker pull command template
+- `usageInstructions`: Single-line docker pull command template
 
 ## Test
 ```bash

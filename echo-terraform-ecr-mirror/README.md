@@ -29,8 +29,7 @@ terraform init && terraform apply -auto-approve
 
 ## Outputs
 - `role_arn`: ARN of the ECR access role
-- `policy_arn`: ARN of the ECR access policy
-- `usage_instruction`: Single-line docker pull command template
+- `usage_instructions`: Usage instructions for pulling via the mirror
 ## Example usage
 ```hcl
 module "echo_ecr_cache" {
@@ -39,7 +38,7 @@ module "echo_ecr_cache" {
 }
 
 output "how_to_use" {
-  value = module.echo_ecr_cache.usage_instruction
+  value = module.echo_ecr_cache.usage_instructions
 }
 ```
 

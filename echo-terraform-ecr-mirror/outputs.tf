@@ -7,7 +7,7 @@ output "role_arn" {
   value       = var.create ? try(aws_iam_role.ecr_access[0].arn, null) : null
 }
 
-output "usage_instruction" {
-  description = "Single-line usage instruction for pulling via the mirror"
+output "usage_instructions" {
+  description = "Usage instructions for pulling via the mirror"
   value       = var.create ? "docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.cache_namespace}/<image>:<tag>" : null
 }

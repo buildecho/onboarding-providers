@@ -34,10 +34,11 @@ terraform init && terraform apply -auto-approve
 - `labels` (map(string), optional)
 
 ## Outputs
-- `repository_id`: ID of the Artifact Registry repository
-- `secret_id`: Secret Manager secret ID
-- `secret_version_name`: Secret version resource name
-- `usage_instruction`: Single-line usage instruction
+- `repository_id`: The ID of the created Artifact Registry repository
+- `repository_name`: The name of the created Artifact Registry repository
+- `secret_id`: The ID of the created secret containing the Echo access key
+- `secret_version`: The full resource name of the secret version
+- `usage_instructions`: Instructions for using the GAR remote repository
 
 ## Example usage
 ```hcl

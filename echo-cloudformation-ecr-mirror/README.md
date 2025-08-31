@@ -29,13 +29,13 @@ aws cloudformation deploy \
 
 ## Outputs
 - `AccessRoleArn`: ARN of the ECR access role
-- `UsageInstruction`: Single-line docker pull command template
+- `UsageInstructions`: Usage instructions for pulling via the mirror
 
 ## Verify
 ```bash
 aws cloudformation describe-stacks \
   --stack-name echo-ecr-integration \
-  --query 'Stacks[0].Outputs[?OutputKey==`UsageInstruction`].OutputValue' \
+  --query 'Stacks[0].Outputs[?OutputKey==`UsageInstructions`].OutputValue' \
   --output text
 ```
 

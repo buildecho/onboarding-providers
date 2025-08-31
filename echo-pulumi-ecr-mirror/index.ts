@@ -50,9 +50,9 @@ export interface EcrPullThroughCacheOutputs {
     roleArn: pulumi.Output<string>;
 
     /**
-     * Single-line usage instruction
+     * Usage instructions for pulling via the mirror
      */
-    usageInstruction: pulumi.Output<string>;
+    usageInstructions: pulumi.Output<string>;
 }
 
 /**
@@ -71,13 +71,13 @@ export interface EcrPullThroughCacheOutputs {
  *     cacheNamespace: "echo"
  * });
  * 
- * export const usage = cache.usageInstruction;
+ * export const usage = cache.usageInstructions;
  * ```
  */
 export class EcrPullThroughCache extends pulumi.ComponentResource {
     public readonly cacheNamespace: pulumi.Output<string>;
     public readonly roleArn: pulumi.Output<string>;
-    public readonly usageInstruction: pulumi.Output<string>;
+    public readonly usageInstructions: pulumi.Output<string>;
     
     constructor(name: string, args: EcrPullThroughCacheInput,opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-ecr-mirror:index:EcrPullThroughCache", name, args, opts);
@@ -150,13 +150,13 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
         // Set outputs
         this.cacheNamespace = pulumi.output(cacheNamespace);
         this.roleArn = ecrPullThroughCacheRole.arn;
-        this.usageInstruction = pulumi.all([current, currentRegion, pulumi.output(cacheNamespace)]).apply(([account, region, ns]) => `docker pull ${account.accountId}.dkr.ecr.${region.name}.amazonaws.com/${ns}/<image>:<tag>`);
+        this.usageInstructions = pulumi.all([current, currentRegion, pulumi.output(cacheNamespace)]).apply(([account, region, ns]) => `docker pull ${account.accountId}.dkr.ecr.${region.name}.amazonaws.com/${ns}/<image>:<tag>`);
         
         // Register outputs
         this.registerOutputs({
             cacheNamespace: this.cacheNamespace,
             roleArn: this.roleArn,
-            usageInstruction: this.usageInstruction
+            usageInstructions: this.usageInstructions
         });
     }
     
