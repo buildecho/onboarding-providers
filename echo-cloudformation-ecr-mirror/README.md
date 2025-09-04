@@ -5,7 +5,7 @@ Purpose: Minimal ECR pull-through cache rule to integrate with the Echo registry
 ## Quickstart
 
 ### AWS Console
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=echo-ecr-integration&templateURL=https://raw.githubusercontent.com/buildecho/onboarding-providers/main/echo-cloudformation-ecr-mirror/template.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=echo-pull-through-cache&templateURL=https://echohq-cloudformation-stacks.s3.us-east-1.amazonaws.com/ecr-pullthrough-cache.yaml)
 
 ### AWS CLI
 ```bash
