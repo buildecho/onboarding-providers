@@ -84,4 +84,4 @@ For questions or issues, check the tool-specific README in each directory or con
 
 ## License
 
-MIT License. See individual directories for module-specific licenses. 
+Apache License 2.0. See [LICENSE](./LICENSE) for details.
