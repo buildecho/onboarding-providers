@@ -3,6 +3,11 @@ import * as gcp from "@pulumi/gcp";
 
 /**
  * Configuration options for the GCP Artifact Registry Remote Repository
+ *
+ * One component orchestrates the image (DOCKER) remote and the library
+ * (PYTHON / NPM / MAVEN) remotes; each is provisioned only when its flag is
+ * set. Images use the image access key, libraries share the library access key.
+ * Credentials are stored in Secret Manager.
  */
 export interface GcpGarRemoteInput {
 
@@ -10,60 +15,116 @@ export interface GcpGarRemoteInput {
      * The GCP project ID where resources will be created
      */
     projectId: string;
-    
+
     /**
-     * The location for the Artifact Registry repository
+     * The location for the Artifact Registry repositories
      * @default "us-central1"
      */
     location?: string;
-    
+
     /**
-     * Repository name for cached images - This will be the name of your repository
+     * Base repository name. Per-format repositories derive from it
+     * (<name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden.
      * @default "echo"
      */
     repositoryName?: string;
-    
+
     /**
-     * Echo access key name (username)
-     */
-    echoAccessKeyName: pulumi.Input<string>;
-    
-    /**
-     * Echo access key value (password/token)
-     */
-    echoAccessKeyValue: pulumi.Input<string>;
-    
-    /**
-     * Echo registry URL
-     * @default "https://reg.echohq.com"
-     */
-    echoRegistryUrl?: string;
-    
-    /**
-     * Description for the repository
+     * Description for the repositories
      * @default "Remote repository for Echo Registry integration"
      */
     description?: string;
-    
+
+    // --- Images (container registry) ---
+
+    /** Provision the Docker remote that proxies Echo's image registry. */
+    echoImages?: boolean;
+
+    /** Echo image access key name (username) for the Docker remote. */
+    echoImageKeyName?: pulumi.Input<string>;
+
+    /** Echo image access key value (password) for the Docker remote. */
+    echoImageKeyValue?: pulumi.Input<string>;
+
+    /** Optional override for the Docker remote repository id. Defaults to repositoryName. */
+    echoImageRepositoryName?: string;
+
     /**
-     * List of members who should have reader access to the repository
+     * Echo image registry URL
+     * @default "https://reg.echohq.com"
+     */
+    echoRegistryUrl?: string;
+
+    /**
+     * @deprecated Use echoImageKeyName. Kept for backwards compatibility with the
+     * original image-only component; provisions the Docker remote when set.
+     */
+    echoAccessKeyName?: pulumi.Input<string>;
+
+    /** @deprecated Use echoImageKeyValue. */
+    echoAccessKeyValue?: pulumi.Input<string>;
+
+    /**
+     * Secret Manager secret name for the Echo image access key.
+     * @default "echo-gar-mirror-secret"
+     */
+    echoAccessKeySecretName?: string;
+
+    // --- Libraries (package registries), one shared library key ---
+
+    /** Provision the PyPI (PYTHON) remote that proxies Echo's PyPI index. */
+    echoLibraryPypi?: boolean;
+
+    /** Provision the npm (NPM) remote that proxies Echo's npm index. */
+    echoLibraryNpm?: boolean;
+
+    /** Provision the Maven (MAVEN) remote that proxies Echo's Maven index. */
+    echoLibraryMaven?: boolean;
+
+    /** Echo library access key name (username) for the library remotes. */
+    echoLibraryKeyName?: pulumi.Input<string>;
+
+    /** Echo library access key value (password) for the library remotes. */
+    echoLibraryKeyValue?: pulumi.Input<string>;
+
+    /**
+     * Secret Manager secret name for the Echo library access key.
+     * @default "echo-gar-mirror-library-secret"
+     */
+    echoLibraryKeySecretName?: string;
+
+    /** @default "https://pypi.echohq.com" */
+    echoPypiUrl?: string;
+
+    /** @default "https://npm.echohq.com" */
+    echoNpmUrl?: string;
+
+    /** @default "https://maven.echohq.com" */
+    echoMavenUrl?: string;
+
+    /** Optional override for the PyPI remote repository id. Defaults to <name>-pypi. */
+    echoPypiRepositoryName?: string;
+
+    /** Optional override for the npm remote repository id. Defaults to <name>-npm. */
+    echoNpmRepositoryName?: string;
+
+    /** Optional override for the Maven remote repository id. Defaults to <name>-maven. */
+    echoMavenRepositoryName?: string;
+
+    // --- IAM ---
+
+    /**
+     * List of members who should have reader access to the created repositories.
      * Format: "user:email@example.com", "serviceAccount:sa@project.iam.gserviceaccount.com", etc.
      */
     readerMembers?: string[];
-    
+
     /**
-     * List of members who should have writer access to the repository
+     * List of members who should have writer access to the created repositories.
      * Format: "user:email@example.com", "serviceAccount:sa@project.iam.gserviceaccount.com", etc.
      */
     writerMembers?: string[];
 
-
-    /**
-     * Name for the secret that will be created.
-     * @default "echo-gar-mirror-secret"
-     */
-    echoAccessKeySecretName?: string;
-    
     /**
      * Additional labels to apply to created resources
      */
@@ -75,157 +136,282 @@ export interface GcpGarRemoteInput {
  */
 export interface GcpGarRemoteOutputs {
     /**
-     * The repository ID
+     * Repository id of the Docker (image) remote, or undefined if not created.
      */
-    repositoryId: pulumi.Output<string>;
-    
-    
+    imageRepositoryKey: pulumi.Output<string | undefined>;
+
     /**
-     * The secret ID storing Echo credentials
+     * Repository ids of the library remotes that were created.
      */
-    secretId: pulumi.Output<string>;
-    
+    libraryRepositoryKeys: pulumi.Output<string[]>;
+
     /**
-     * The secret version name
-     */
-    secretVersionName: pulumi.Output<string>;
-    
-    /**
-     * Single-line usage instructions
+     * Multi-line usage instructions for the created repositories.
      */
     usageInstructions: pulumi.Output<string>;
 }
 
 /**
  * GCP Artifact Registry Remote Repository Component
- * 
- * This component sets up a GCP Artifact Registry remote repository that points to Echo's registry,
- * allowing you to pull Echo images through GCP's Artifact Registry.
- * 
+ *
+ * Provisions GCP Artifact Registry remote repositories that proxy Echo — a
+ * Docker remote for images and PYTHON/NPM/MAVEN remotes for libraries — based
+ * on the inputs. Credentials are stored in Secret Manager.
+ *
  * @example
  * ```typescript
  * import { GcpGarRemote } from "@buildecho/echo-pulumi-gar-mirror";
- * 
+ *
  * const echoRemote = new GcpGarRemote("echo-remote", {
  *     projectId: "my-gcp-project",
- *     echoAccessKeyName: config.requireSecret("echoAccessKeyName"),
- *     echoAccessKeyValue: config.requireSecret("echoAccessKeyValue"),
- *     readerMembers: ["user:developer@example.com"]
+ *     echoImages: true,
+ *     echoImageKeyName: config.requireSecret("echoImageKeyName"),
+ *     echoImageKeyValue: config.requireSecret("echoImageKeyValue"),
+ *     echoLibraryPypi: true,
+ *     echoLibraryKeyName: config.requireSecret("echoLibraryKeyName"),
+ *     echoLibraryKeyValue: config.requireSecret("echoLibraryKeyValue"),
  * });
- * 
+ *
  * export const usage = echoRemote.usageInstructions;
  * ```
  */
 export class GcpGarRemote extends pulumi.ComponentResource {
-    public readonly repositoryId: pulumi.Output<string>;
-    public readonly secretId: pulumi.Output<string>;
-    public readonly secretVersionName: pulumi.Output<string>;
+    public readonly imageRepositoryKey: pulumi.Output<string | undefined>;
+    public readonly libraryRepositoryKeys: pulumi.Output<string[]>;
     public readonly usageInstructions: pulumi.Output<string>;
-    
+
     constructor(name: string, args: GcpGarRemoteInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-gar-mirror:index:GcpGarRemote", name, args, opts);
-        
+
         // Set defaults
         const location = args.location || "us-central1";
         const repositoryName = args.repositoryName || "echo";
-        const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
         const description = args.description || "Remote repository for Echo Registry integration";
-        const secretName = args.echoAccessKeySecretName || "echo-gar-mirror-secret";
-        
+        const imageSecretName = args.echoAccessKeySecretName || "echo-gar-mirror-secret";
+        const librarySecretName = args.echoLibraryKeySecretName || "echo-gar-mirror-library-secret";
+
         const labels = { ...args.labels };
-        
+
         // Get current project info
         const project = gcp.organizations.getProject({
             projectId: args.projectId,
         });
-        
-        // Create Secret Manager secret for Echo access key
-        const secret = new gcp.secretmanager.Secret(`${name}-echo-access-key`, {
-            secretId: secretName,
-            replication: {
-                auto: {},
-            },
-            labels: {
-                ...labels,
-                purpose: "echo-registry-authentication",
-            },
-            project: args.projectId,
-        }, { parent: this });
-        
-        // Create secret version with the Echo access key value
-        const echoAccessKeySecretVersion = new gcp.secretmanager.SecretVersion(`${name}-echo-access-key-version`, {
-            secret: secret.id,
-            secretData: args.echoAccessKeyValue,
-        }, { parent: this });
-        
-        // Create Artifact Registry remote repository
-        const repository = new gcp.artifactregistry.Repository(`${name}-remote-repo`, {
-            repositoryId: repositoryName,
-            location: location,
-            format: "DOCKER",
-            mode: "REMOTE_REPOSITORY",
-            description: description,
-            remoteRepositoryConfig: {
-                description: "Remote repository pointing to Echo Registry (reg.echohq.com)",
-                dockerRepository: {
-                    customRepository: {
-                        uri: echoRegistryUrl,
-                    },
+
+        const garServiceAccount = pulumi.interpolate`serviceAccount:service-${project.then(p => p.number)}@gcp-sa-artifactregistry.iam.gserviceaccount.com`;
+
+        const createdRepositories: gcp.artifactregistry.Repository[] = [];
+        const instructions: string[] = [];
+
+        // --- Image (Docker) remote ---
+        // Provision when explicitly enabled, or (legacy) when a deprecated access
+        // key was supplied. Image key prefers the new field, falls back to access.
+        const createDocker = args.echoImages === true || args.echoAccessKeyName !== undefined;
+        if (createDocker) {
+            const imageRepository = args.echoImageRepositoryName || repositoryName;
+
+            // Create Secret Manager secret for the Echo image access key
+            const secret = new gcp.secretmanager.Secret(`${name}-echo-access-key`, {
+                secretId: imageSecretName,
+                replication: {
+                    auto: {},
                 },
-                upstreamCredentials: {
-                    usernamePasswordCredentials: {
-                        username: args.echoAccessKeyName,
-                        passwordSecretVersion: echoAccessKeySecretVersion.name,
-                    },
+                labels: {
+                    ...labels,
+                    purpose: "echo-registry-authentication",
                 },
-            },
-            labels: labels,
-            project: args.projectId,
-        }, { parent: this });
-        
-        // Grant GAR service account access to the secret
-         new gcp.secretmanager.SecretIamMember(`${name}-gar-secret-accessor`, {
-            secretId: secret.secretId,
-            role: "roles/secretmanager.secretAccessor",
-            member: pulumi.interpolate`serviceAccount:service-${project.then(p => p.number)}@gcp-sa-artifactregistry.iam.gserviceaccount.com`,
-            project: args.projectId,
-        }, { parent: this });
-        
-        // Create IAM bindings for repository readers if specified
-        if (args.readerMembers && args.readerMembers.length > 0) {
-            new gcp.artifactregistry.RepositoryIamBinding(`${name}-readers`, {
-                repository: repository.name,
-                location: repository.location,
-                role: "roles/artifactregistry.reader",
-                members: args.readerMembers,
                 project: args.projectId,
             }, { parent: this });
-        }
-        
-        // Create IAM bindings for repository writers if specified
-        if (args.writerMembers && args.writerMembers.length > 0) {
-            new gcp.artifactregistry.RepositoryIamBinding(`${name}-writers`, {
-                repository: repository.name,
-                location: repository.location,
-                role: "roles/artifactregistry.writer",
-                members: args.writerMembers,
+
+            const echoAccessKeySecretVersion = new gcp.secretmanager.SecretVersion(`${name}-echo-access-key-version`, {
+                secret: secret.id,
+                secretData: args.echoImageKeyValue ?? args.echoAccessKeyValue ?? "",
+            }, { parent: this });
+
+            const repository = new gcp.artifactregistry.Repository(`${name}-remote-repo`, {
+                repositoryId: imageRepository,
+                location: location,
+                format: "DOCKER",
+                mode: "REMOTE_REPOSITORY",
+                description: description,
+                remoteRepositoryConfig: {
+                    description: "Remote repository pointing to Echo Registry (reg.echohq.com)",
+                    dockerRepository: {
+                        customRepository: {
+                            uri: args.echoRegistryUrl || "https://reg.echohq.com",
+                        },
+                    },
+                    upstreamCredentials: {
+                        usernamePasswordCredentials: {
+                            username: args.echoImageKeyName ?? args.echoAccessKeyName ?? "",
+                            passwordSecretVersion: echoAccessKeySecretVersion.name,
+                        },
+                    },
+                },
+                labels: labels,
                 project: args.projectId,
             }, { parent: this });
+
+            // Grant the GAR service account access to the image secret
+            new gcp.secretmanager.SecretIamMember(`${name}-gar-secret-accessor`, {
+                secretId: secret.secretId,
+                role: "roles/secretmanager.secretAccessor",
+                member: garServiceAccount,
+                project: args.projectId,
+            }, { parent: this });
+
+            createdRepositories.push(repository);
+            this.imageRepositoryKey = repository.repositoryId;
+            instructions.push(`Images:  docker pull ${location}-docker.pkg.dev/${args.projectId}/${imageRepository}/static:latest`);
+        } else {
+            this.imageRepositoryKey = pulumi.output(undefined);
         }
 
-        const repositoryUrl = pulumi.interpolate`${location}-docker.pkg.dev/${args.projectId}/${repository.repositoryId}`;
-        
+        // --- Library remotes (one shared library key) ---
+        const createLibrary = args.echoLibraryPypi === true || args.echoLibraryNpm === true || args.echoLibraryMaven === true;
+        const libraryRepositoryKeys: pulumi.Output<string>[] = [];
+
+        if (createLibrary) {
+            const librarySecret = new gcp.secretmanager.Secret(`${name}-echo-library-key`, {
+                secretId: librarySecretName,
+                replication: {
+                    auto: {},
+                },
+                labels: {
+                    ...labels,
+                    purpose: "echo-library-authentication",
+                },
+                project: args.projectId,
+            }, { parent: this });
+
+            const librarySecretVersion = new gcp.secretmanager.SecretVersion(`${name}-echo-library-key-version`, {
+                secret: librarySecret.id,
+                secretData: args.echoLibraryKeyValue ?? "",
+            }, { parent: this });
+
+            // Grant the GAR service account access to the library secret
+            new gcp.secretmanager.SecretIamMember(`${name}-gar-library-secret-accessor`, {
+                secretId: librarySecret.secretId,
+                role: "roles/secretmanager.secretAccessor",
+                member: garServiceAccount,
+                project: args.projectId,
+            }, { parent: this });
+
+            const libraryUpstreamCredentials = {
+                usernamePasswordCredentials: {
+                    username: args.echoLibraryKeyName ?? "",
+                    passwordSecretVersion: librarySecretVersion.name,
+                },
+            };
+
+            if (args.echoLibraryPypi) {
+                const key = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
+                const repository = new gcp.artifactregistry.Repository(`${name}-pypi`, {
+                    repositoryId: key,
+                    location: location,
+                    format: "PYTHON",
+                    mode: "REMOTE_REPOSITORY",
+                    description: description,
+                    remoteRepositoryConfig: {
+                        description: "Remote repository pointing to Echo PyPI (pypi.echohq.com)",
+                        pythonRepository: {
+                            customRepository: {
+                                uri: args.echoPypiUrl || "https://pypi.echohq.com",
+                            },
+                        },
+                        upstreamCredentials: libraryUpstreamCredentials,
+                    },
+                    labels: labels,
+                    project: args.projectId,
+                }, { parent: this });
+                createdRepositories.push(repository);
+                libraryRepositoryKeys.push(repository.repositoryId);
+                instructions.push(`PyPI:    pip install --index-url https://${location}-python.pkg.dev/${args.projectId}/${key}/simple/ <package>`);
+            }
+
+            if (args.echoLibraryNpm) {
+                const key = args.echoNpmRepositoryName || `${repositoryName}-npm`;
+                const repository = new gcp.artifactregistry.Repository(`${name}-npm`, {
+                    repositoryId: key,
+                    location: location,
+                    format: "NPM",
+                    mode: "REMOTE_REPOSITORY",
+                    description: description,
+                    remoteRepositoryConfig: {
+                        description: "Remote repository pointing to Echo npm (npm.echohq.com)",
+                        npmRepository: {
+                            customRepository: {
+                                uri: args.echoNpmUrl || "https://npm.echohq.com",
+                            },
+                        },
+                        upstreamCredentials: libraryUpstreamCredentials,
+                    },
+                    labels: labels,
+                    project: args.projectId,
+                }, { parent: this });
+                createdRepositories.push(repository);
+                libraryRepositoryKeys.push(repository.repositoryId);
+                instructions.push(`npm:     npm install --registry https://${location}-npm.pkg.dev/${args.projectId}/${key}/ <package>`);
+            }
+
+            if (args.echoLibraryMaven) {
+                const key = args.echoMavenRepositoryName || `${repositoryName}-maven`;
+                const repository = new gcp.artifactregistry.Repository(`${name}-maven`, {
+                    repositoryId: key,
+                    location: location,
+                    format: "MAVEN",
+                    mode: "REMOTE_REPOSITORY",
+                    description: description,
+                    remoteRepositoryConfig: {
+                        description: "Remote repository pointing to Echo Maven (maven.echohq.com)",
+                        mavenRepository: {
+                            customRepository: {
+                                uri: args.echoMavenUrl || "https://maven.echohq.com",
+                            },
+                        },
+                        upstreamCredentials: libraryUpstreamCredentials,
+                    },
+                    labels: labels,
+                    project: args.projectId,
+                }, { parent: this });
+                createdRepositories.push(repository);
+                libraryRepositoryKeys.push(repository.repositoryId);
+                instructions.push(`Maven:   add https://${location}-maven.pkg.dev/${args.projectId}/${key} as a repository in your settings.xml`);
+            }
+        }
+
+        // Create IAM bindings for repository readers/writers across all created repos
+        if (args.readerMembers && args.readerMembers.length > 0) {
+            createdRepositories.forEach((repository, i) => {
+                new gcp.artifactregistry.RepositoryIamBinding(`${name}-readers-${i}`, {
+                    repository: repository.name,
+                    location: repository.location,
+                    role: "roles/artifactregistry.reader",
+                    members: args.readerMembers!,
+                    project: args.projectId,
+                }, { parent: this });
+            });
+        }
+
+        if (args.writerMembers && args.writerMembers.length > 0) {
+            createdRepositories.forEach((repository, i) => {
+                new gcp.artifactregistry.RepositoryIamBinding(`${name}-writers-${i}`, {
+                    repository: repository.name,
+                    location: repository.location,
+                    role: "roles/artifactregistry.writer",
+                    members: args.writerMembers!,
+                    project: args.projectId,
+                }, { parent: this });
+            });
+        }
+
         // Set outputs
-        this.repositoryId = repository.repositoryId;
-        this.secretId = secret.secretId;
-        this.secretVersionName = echoAccessKeySecretVersion.name;
-        this.usageInstructions = pulumi.interpolate`docker pull ${repositoryUrl}/static:latest`;
-        
+        this.libraryRepositoryKeys = pulumi.all(libraryRepositoryKeys);
+        this.usageInstructions = pulumi.output(instructions.join("\n"));
+
         // Register outputs
         this.registerOutputs({
-            repositoryId: this.repositoryId,
-            secretId: this.secretId,
-            secretVersionName: this.secretVersionName,
+            imageRepositoryKey: this.imageRepositoryKey,
+            libraryRepositoryKeys: this.libraryRepositoryKeys,
             usageInstructions: this.usageInstructions,
         });
     }
