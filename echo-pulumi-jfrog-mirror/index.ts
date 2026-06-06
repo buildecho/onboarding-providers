@@ -2,164 +2,141 @@ import * as pulumi from "@pulumi/pulumi";
 import * as artifactory from "@pulumi/artifactory";
 
 /**
- * Configuration options for the JFrog Integration with Echo Registry
+ * Configuration options for the JFrog Integration with Echo.
+ *
+ * One component orchestrates the image (Docker) remote and the library (PyPI /
+ * npm / Maven) remotes; each is provisioned only when its flag is set. Images
+ * use the image access key, libraries share the library access key.
  */
 export interface JfrogIntegrationInput {
     /**
-     * The key (name) for the remote repository in Artifactory
+     * Base name for the remote repositories. Per-format repositories derive from
+     * it (<name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden.
      * @default "echo"
      */
     remoteRepositoryName?: string;
 
+    // --- Images (container registry) ---
+
+    /** Provision the Docker remote that proxies Echo's image registry. */
+    echoImages?: boolean;
+
+    /** Echo image access key name (username) for the Docker remote. */
+    echoImageKeyName?: pulumi.Input<string>;
+
+    /** Echo image access key value (password) for the Docker remote. */
+    echoImageKeyValue?: pulumi.Input<string>;
+
+    /** Optional override for the Docker remote key. Defaults to remoteRepositoryName. */
+    echoImageRepositoryName?: string;
+
     /**
-     * The URL of the Echo registry
+     * URL of the Echo image registry.
      * @default "https://reg.echohq.com"
      */
     echoRegistryUrl?: string;
 
     /**
-     * The name of the Echo access key (username)
+     * @deprecated Use echoImageKeyName. Kept for backwards compatibility with the
+     * original image-only component; provisions the Docker remote when set.
      */
-    echoAccessKeyName: pulumi.Input<string>;
+    echoAccessKeyName?: pulumi.Input<string>;
 
-    /**
-     * The value of the Echo access key (password)
-     */
-    echoAccessKeyValue: pulumi.Input<string>;
+    /** @deprecated Use echoImageKeyValue. */
+    echoAccessKeyValue?: pulumi.Input<string>;
 
-    /**
-     * Description for the remote repository
-     * @default "Echo Registry remote repository for container images"
-     */
+    // --- Libraries (package registries), one shared library key ---
+
+    /** Provision the PyPI remote that proxies Echo's PyPI index. */
+    echoLibraryPypi?: boolean;
+
+    /** Provision the npm remote that proxies Echo's npm index. */
+    echoLibraryNpm?: boolean;
+
+    /** Provision the Maven remote that proxies Echo's Maven index. */
+    echoLibraryMaven?: boolean;
+
+    /** Echo library access key name (username) for the library remotes. */
+    echoLibraryKeyName?: pulumi.Input<string>;
+
+    /** Echo library access key value (password) for the library remotes. */
+    echoLibraryKeyValue?: pulumi.Input<string>;
+
+    /** @default "https://pypi.echohq.com" */
+    echoPypiUrl?: string;
+
+    /** @default "https://npm.echohq.com" */
+    echoNpmUrl?: string;
+
+    /** @default "https://maven.echohq.com" */
+    echoMavenUrl?: string;
+
+    /** Optional override for the PyPI remote key. Defaults to <name>-pypi. */
+    echoPypiRepositoryName?: string;
+
+    /** Optional override for the npm remote key. Defaults to <name>-npm. */
+    echoNpmRepositoryName?: string;
+
+    /** Optional override for the Maven remote key. Defaults to <name>-maven. */
+    echoMavenRepositoryName?: string;
+
+    // --- Shared remote-repository configuration ---
+
+    /** @default "Echo remote repository" */
     description?: string;
-
-    /**
-     * Internal notes about the repository
-     * @default "Managed by Pulumi - Echo Registry integration"
-     */
+    /** @default "Managed by Pulumi - Echo integration" */
     notes?: string;
-
-    /**
-     * Comma-separated list of patterns to include when evaluating artifact requests
-     * @default "**\/*"
-     */
+    /** @default "**\/*" */
     includesPattern?: string;
-
-    /**
-     * Comma-separated list of patterns to exclude when evaluating artifact requests
-     * @default ""
-     */
+    /** @default "" */
     excludesPattern?: string;
-
-    /**
-     * Repository layout reference
-     * @default "simple-default"
-     */
+    /** Docker repo layout reference. @default "simple-default" */
     repoLayoutRef?: string;
-
-    /**
-     * Block artifacts with mismatching MIME types
-     * @default true
-     */
+    /** @default true */
     blockMismatchingMimeTypes?: boolean;
-
-    /**
-     * Enable token authentication for Docker repositories
-     * @default true
-     */
+    /** @default true */
     enableTokenAuthentication?: boolean;
-
-    /**
-     * Store artifacts locally when proxying
-     * @default true
-     */
+    /** @default true */
     storeArtifactsLocally?: boolean;
-
-    /**
-     * Network socket timeout in milliseconds
-     * @default 15000
-     */
+    /** @default 15000 */
     socketTimeoutMillis?: number;
-
-    /**
-     * Cache period for retrieval operations in seconds
-     * @default 7200
-     */
+    /** @default 7200 */
     retrievalCachePeriodSeconds?: number;
-
-    /**
-     * Cache period for missed artifacts in seconds
-     * @default 1800
-     */
+    /** @default 1800 */
     missedCachePeriodSeconds?: number;
-
-    /**
-     * Fail the request if the remote repository is not available
-     * @default false
-     */
+    /** @default false */
     hardFail?: boolean;
-
-    /**
-     * Set the repository to offline mode
-     * @default false
-     */
+    /** @default false */
     offline?: boolean;
-
-    /**
-     * Bypass HEAD requests and directly perform GET requests
-     * @default false
-     */
+    /** @default false */
     bypassHeadRequests?: boolean;
-
-    /**
-     * Enable priority resolution
-     * @default false
-     */
+    /** @default false */
     priorityResolution?: boolean;
-
-    /**
-     * Enable Xray indexing
-     * @default false
-     */
+    /** @default false */
     xrayIndex?: boolean;
-
-    /**
-     * List of property sets to apply to the repository
-     * @default []
-     */
+    /** @default ["artifactory"] */
     propertySets?: string[];
-
-    /**
-     * Additional tags to apply to created resources
-     */
-    tags?: Record<string, string>;
 }
 
 /**
- * Outputs from the JFrog Integration component
- */
-export interface JfrogIntegrationOutputs {
-    /**
-     * Human-readable usage instructions
-     */
-    usageInstructions: pulumi.Output<string>;
-}
-
-/**
- * JFrog Integration Component
- * 
- * This component sets up a JFrog Artifactory remote repository to integrate with Echo's registry,
- * allowing you to proxy Echo images through your Artifactory instance.
- * 
+ * JFrog Integration Component.
+ *
+ * Provisions Artifactory remote repositories that proxy Echo — a Docker remote
+ * for images and PyPI/npm/Maven remotes for libraries — based on the inputs.
+ *
  * @example
  * ```typescript
  * import { JfrogIntegration } from "@buildecho/echo-pulumi-jfrog-mirror";
- * 
+ *
  * const integration = new JfrogIntegration("echo-integration", {
- *     echoAccessKeyName: config.requireSecret("echoAccessKeyName"),
- *     echoAccessKeyValue: config.requireSecret("echoAccessKeyValue")
+ *     echoImages: true,
+ *     echoImageKeyName: config.requireSecret("echoImageKeyName"),
+ *     echoImageKeyValue: config.requireSecret("echoImageKeyValue"),
+ *     echoLibraryPypi: true,
+ *     echoLibraryKeyName: config.requireSecret("echoLibraryKeyName"),
+ *     echoLibraryKeyValue: config.requireSecret("echoLibraryKeyValue"),
  * });
- * 
+ *
  * export const instructions = integration.usageInstructions;
  * ```
  */
@@ -169,60 +146,99 @@ export class JfrogIntegration extends pulumi.ComponentResource {
     constructor(name: string, args: JfrogIntegrationInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-jfrog-mirror:index:JfrogIntegration", name, args, opts);
 
-        // Set defaults
         const repositoryName = args.remoteRepositoryName || "echo";
-        const echoRegistryUrl = args.echoRegistryUrl || "https://reg.echohq.com";
-        const description = args.description || "Echo Registry remote repository for container images";
-        const notes = args.notes || "Managed by Pulumi - Echo Registry integration";
+        const description = args.description || "Echo remote repository";
+        const notes = args.notes || "Managed by Pulumi - Echo integration";
         const includesPattern = args.includesPattern || "**/*";
         const excludesPattern = args.excludesPattern || "";
-        const repoLayoutRef = args.repoLayoutRef || "simple-default";
-        const blockMismatchingMimeTypes = args.blockMismatchingMimeTypes ?? true;
-        const enableTokenAuthentication = args.enableTokenAuthentication ?? true;
         const storeArtifactsLocally = args.storeArtifactsLocally ?? true;
         const socketTimeoutMillis = args.socketTimeoutMillis || 15000;
         const retrievalCachePeriodSeconds = args.retrievalCachePeriodSeconds || 7200;
         const missedCachePeriodSeconds = args.missedCachePeriodSeconds || 1800;
         const hardFail = args.hardFail ?? false;
         const offline = args.offline ?? false;
-        const bypassHeadRequests = args.bypassHeadRequests ?? false;
-        const priorityResolution = args.priorityResolution ?? false;
-        const xrayIndex = args.xrayIndex ?? false;
-        const propertySets = args.propertySets || ["artifactory"];
 
-        // Create the remote Docker repository
-        const remoteRepository = new artifactory.RemoteDockerRepository(`${name}-remote`, {
-            key: repositoryName,
-            url: echoRegistryUrl,
-            username: args.echoAccessKeyName,
-            password: args.echoAccessKeyValue,
-            description: description,
-            notes: notes,
-            includesPattern: includesPattern,
-            excludesPattern: excludesPattern,
-            repoLayoutRef: repoLayoutRef,
-            blockMismatchingMimeTypes: blockMismatchingMimeTypes,
-            enableTokenAuthentication: enableTokenAuthentication,
-            storeArtifactsLocally: storeArtifactsLocally,
-            socketTimeoutMillis: socketTimeoutMillis,
-            retrievalCachePeriodSeconds: retrievalCachePeriodSeconds,
-            missedCachePeriodSeconds: missedCachePeriodSeconds,
-            hardFail: hardFail,
-            offline: offline,
-            bypassHeadRequests: bypassHeadRequests,
-            priorityResolution: priorityResolution,
-            xrayIndex: xrayIndex,
-            propertySets: propertySets,
-        }, { parent: this });
+        const instructions: string[] = [];
 
-        // Set outputs
+        // --- Image (Docker) remote ---
+        // Provision when explicitly enabled, or (legacy) when a deprecated access
+        // key was supplied. Image key prefers the new field, falls back to access.
+        const createDocker = args.echoImages === true || args.echoAccessKeyName !== undefined;
+        if (createDocker) {
+            const imageRepository = args.echoImageRepositoryName || repositoryName;
+            new artifactory.RemoteDockerRepository(`${name}-remote`, {
+                key: imageRepository,
+                url: args.echoRegistryUrl || "https://reg.echohq.com",
+                username: args.echoImageKeyName ?? args.echoAccessKeyName ?? "",
+                password: args.echoImageKeyValue ?? args.echoAccessKeyValue ?? "",
+                description,
+                notes,
+                includesPattern,
+                excludesPattern,
+                repoLayoutRef: args.repoLayoutRef || "simple-default",
+                blockMismatchingMimeTypes: args.blockMismatchingMimeTypes ?? true,
+                enableTokenAuthentication: args.enableTokenAuthentication ?? true,
+                storeArtifactsLocally,
+                socketTimeoutMillis,
+                retrievalCachePeriodSeconds,
+                missedCachePeriodSeconds,
+                hardFail,
+                offline,
+                bypassHeadRequests: args.bypassHeadRequests ?? false,
+                priorityResolution: args.priorityResolution ?? false,
+                xrayIndex: args.xrayIndex ?? false,
+                propertySets: args.propertySets || ["artifactory"],
+            }, { parent: this });
+            instructions.push(`Images:  docker pull <your-jfrog-domain>/${imageRepository}/static:latest`);
+        }
 
-        // one line docker pull command
-        this.usageInstructions = pulumi.output(`docker pull <JFrog instance URL>/${repositoryName}/static:latest`);
-        // Register outputs
+        const libraryCommon = {
+            username: args.echoLibraryKeyName ?? "",
+            password: args.echoLibraryKeyValue ?? "",
+            description,
+            notes,
+            storeArtifactsLocally,
+            socketTimeoutMillis,
+            retrievalCachePeriodSeconds,
+            missedCachePeriodSeconds,
+            hardFail,
+            offline,
+        };
+
+        // --- Library remotes ---
+        if (args.echoLibraryPypi) {
+            const key = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
+            new artifactory.RemotePypiRepository(`${name}-pypi`, {
+                key,
+                url: args.echoPypiUrl || "https://pypi.echohq.com",
+                ...libraryCommon,
+            }, { parent: this });
+            instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${key}/simple <package>`);
+        }
+
+        if (args.echoLibraryNpm) {
+            const key = args.echoNpmRepositoryName || `${repositoryName}-npm`;
+            new artifactory.RemoteNpmRepository(`${name}-npm`, {
+                key,
+                url: args.echoNpmUrl || "https://npm.echohq.com",
+                ...libraryCommon,
+            }, { parent: this });
+            instructions.push(`npm:     npm install --registry https://<your-jfrog-domain>/artifactory/api/npm/${key}/ <package>`);
+        }
+
+        if (args.echoLibraryMaven) {
+            const key = args.echoMavenRepositoryName || `${repositoryName}-maven`;
+            new artifactory.RemoteMavenRepository(`${name}-maven`, {
+                key,
+                url: args.echoMavenUrl || "https://maven.echohq.com",
+                ...libraryCommon,
+            }, { parent: this });
+            instructions.push(`Maven:   add https://<your-jfrog-domain>/artifactory/${key} as a repository in your settings.xml`);
+        }
+
+        this.usageInstructions = pulumi.output(instructions.join("\n"));
         this.registerOutputs({
-            usageInstructions: this.usageInstructions
+            usageInstructions: this.usageInstructions,
         });
     }
-
 }
