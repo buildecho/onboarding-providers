@@ -1,61 +1,86 @@
 # Echo JFrog Artifactory Mirror - Terraform Module
 
-Purpose: Terraform module to configure JFrog Artifactory as a proxy cache for Echo Registry, enabling local caching and faster container image pulls.
+Configures JFrog Artifactory as a proxy for Echo. One module provisions a Docker
+remote for **images** and/or PyPI / npm / Maven remotes for **libraries**, based
+on the inputs. Each repository is created only when its flag is set.
 
 ## Quickstart
 
 ```hcl
-module "echo_artifactory_mirror" {
+module "echo_jfrog_mirror" {
   source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-jfrog-mirror"
 
-  echo_access_key_name     = var.echo_access_key_name
-  echo_access_key_value    = var.echo_access_key_value
+  # Images
+  echo_images          = true
+  echo_image_key_name  = var.echo_image_key_name
+  echo_image_key_value = var.echo_image_key_value
+
+  # Libraries (one shared library key)
+  echo_library_pypi      = true
+  echo_library_npm       = true
+  echo_library_key_name  = var.echo_library_key_name
+  echo_library_key_value = var.echo_library_key_value
+}
+
+output "usage_instructions" {
+  value = module.echo_jfrog_mirror.usage_instructions
 }
 ```
 
 ```bash
-terraform init && terraform apply -auto-approve
+terraform init && terraform apply
 ```
 
 ## Inputs
-- `create` (bool, default: `true`)
-- `echo_access_key_name` (string, required)
-- `echo_access_key_value` (string, required)
-- `remote_repository_name` (string, default: `"echo"`)
+
+### Images (container registry)
+- `echo_images` (bool, default: `false`) — provision the Docker remote
+- `echo_image_key_name` / `echo_image_key_value` (string, sensitive) — image access key
+- `echo_image_repository_name` (string, default: `""` → `remote_repository_name`)
 - `echo_registry_url` (string, default: `"https://reg.echohq.com"`)
-- `description` (string, default: `"Echo Registry remote repository for container images"`)
-- `notes` (string, default: `"Managed by Terraform - Echo Registry integration"`)
-- `includes_pattern` (string, default: `"**/*"`)
-- `excludes_pattern` (string, default: `""`)
-- `repo_layout_ref` (string, default: `"simple-default"`)
-- `block_mismatching_mime_types` (bool, default: `true`)
-- `enable_token_authentication` (bool, default: `true`)
+- `echo_access_key_name` / `echo_access_key_value` — **deprecated**, kept for backwards
+  compatibility; when set they provision the Docker remote using the image fields.
+
+### Libraries (package registries — one shared library key)
+- `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
+- `echo_library_key_name` / `echo_library_key_value` (string, sensitive) — library access key
+- `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
+- `echo_npm_url` (default: `"https://npm.echohq.com"`)
+- `echo_maven_url` (default: `"https://maven.echohq.com"`)
+- `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
+  (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven}`)
+
+### Shared
+- `create` (bool, default: `true`)
+- `remote_repository_name` (string, default: `"echo"`) — base name; per-format repos derive from it
+- `description`, `notes`, `includes_pattern`, `excludes_pattern`, `repo_layout_ref`
+- `block_mismatching_mime_types`, `enable_token_authentication` (Docker only)
+- `store_artifacts_locally`, `socket_timeout_millis`, `retrieval_cache_period_seconds`,
+  `missed_cache_period_seconds`, `hard_fail`, `offline`, `bypass_head_requests`,
+  `priority_resolution`, `xray_index`, `property_sets`
 
 ## Outputs
-- `usage_instructions`: Docker pull command template
+- `usage_instructions` — per-format pull/install instructions (replace `<your-jfrog-domain>`)
+- `image_repository_key` — Docker remote key (or `null`)
+- `library_repository_keys` — list of created library remote keys
 
-## Example Usage
+## Example — custom repository names
+
 ```hcl
-module "echo_artifactory_mirror" {
+module "echo_jfrog_mirror" {
   source = "./echo-terraform-jfrog-mirror"
-  
-  echo_access_key_name     = var.echo_access_key_name
-  echo_access_key_value    = var.echo_access_key_value
-  remote_repository_name   = "echo-mirror"
+
+  remote_repository_name = "echo"
+
+  echo_images          = true
+  echo_image_key_name  = var.echo_image_key_name
+  echo_image_key_value = var.echo_image_key_value
+
+  echo_library_pypi          = true
+  echo_pypi_repository_name  = "echo-python" # overrides the default "echo-pypi"
+  echo_library_key_name      = var.echo_library_key_name
+  echo_library_key_value     = var.echo_library_key_value
 }
-
-output "usage" {
-  value = module.echo_artifactory_mirror.usage_instructions
-}
-```
-
-## Test
-```bash
-# Configure Docker to use Artifactory
-docker login your-artifactory.com
-
-# Pull through Artifactory mirror
-docker pull your-artifactory.com/echo-remote/static:latest
 ```
 
 ## Provider Configuration
@@ -65,19 +90,3 @@ provider "artifactory" {
   access_token = var.artifactory_access_token
 }
 ```
-
-## Advanced Configuration
-```hcl
-module "echo_artifactory_mirror" {
-  source = "./echo-terraform-jfrog-mirror"
-
-  remote_repository_name         = "echo-docker-remote"
-  echo_access_key_name           = var.echo_access_key_name
-  echo_access_key_value          = var.echo_access_key_value
-  
-  # Custom settings
-  store_artifacts_locally        = true
-  retrieval_cache_period_seconds = 7200
-  xray_index                     = true
-}
-``` 

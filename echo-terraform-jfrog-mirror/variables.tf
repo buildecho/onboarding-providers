@@ -6,38 +6,149 @@ variable "create" {
 
 variable "remote_repository_name" {
   type        = string
-  description = "The name for the remote repository in Artifactory"
+  description = "Base name for the remote repositories in Artifactory. Per-format repositories derive from it (e.g. <name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden."
   default     = "echo"
+}
+
+# ---------------------------------------------------------------------------
+# Images (container registry)
+# ---------------------------------------------------------------------------
+
+variable "echo_images" {
+  type        = bool
+  description = "Provision the Docker remote repository that proxies Echo's image registry."
+  default     = false
+}
+
+variable "echo_image_key_name" {
+  type        = string
+  description = "Echo image access key name (username) for the Docker remote."
+  default     = ""
+  sensitive   = true
+}
+
+variable "echo_image_key_value" {
+  type        = string
+  description = "Echo image access key value (password) for the Docker remote."
+  default     = ""
+  sensitive   = true
+}
+
+variable "echo_image_repository_name" {
+  type        = string
+  description = "Optional override for the Docker remote repository key. Defaults to remote_repository_name."
+  default     = ""
 }
 
 variable "echo_registry_url" {
   type        = string
-  description = "The URL of the Echo registry"
+  description = "URL of the Echo image registry."
   default     = "https://reg.echohq.com"
 }
 
+# Deprecated: kept for backwards compatibility with the original image-only
+# module. When set (and the new echo_image_key_* are empty) it provisions the
+# Docker remote. Prefer echo_images + echo_image_key_name/value.
 variable "echo_access_key_name" {
   type        = string
-  description = "The name of the Echo access key (username)"
+  description = "Deprecated. Use echo_image_key_name. Echo access key name (username)."
+  default     = ""
   sensitive   = true
 }
 
 variable "echo_access_key_value" {
   type        = string
-  description = "The value of the Echo access key (password)"
+  description = "Deprecated. Use echo_image_key_value. Echo access key value (password)."
+  default     = ""
   sensitive   = true
 }
 
+# ---------------------------------------------------------------------------
+# Libraries (package registries) — one shared library key across ecosystems
+# ---------------------------------------------------------------------------
+
+variable "echo_library_pypi" {
+  type        = bool
+  description = "Provision the PyPI remote repository that proxies Echo's PyPI index."
+  default     = false
+}
+
+variable "echo_library_npm" {
+  type        = bool
+  description = "Provision the npm remote repository that proxies Echo's npm index."
+  default     = false
+}
+
+variable "echo_library_maven" {
+  type        = bool
+  description = "Provision the Maven remote repository that proxies Echo's Maven index."
+  default     = false
+}
+
+variable "echo_library_key_name" {
+  type        = string
+  description = "Echo library access key name (username) for the library remotes."
+  default     = ""
+  sensitive   = true
+}
+
+variable "echo_library_key_value" {
+  type        = string
+  description = "Echo library access key value (password) for the library remotes."
+  default     = ""
+  sensitive   = true
+}
+
+variable "echo_pypi_url" {
+  type        = string
+  description = "URL of the Echo PyPI index."
+  default     = "https://pypi.echohq.com"
+}
+
+variable "echo_npm_url" {
+  type        = string
+  description = "URL of the Echo npm index."
+  default     = "https://npm.echohq.com"
+}
+
+variable "echo_maven_url" {
+  type        = string
+  description = "URL of the Echo Maven index."
+  default     = "https://maven.echohq.com"
+}
+
+variable "echo_pypi_repository_name" {
+  type        = string
+  description = "Optional override for the PyPI remote repository key. Defaults to <remote_repository_name>-pypi."
+  default     = ""
+}
+
+variable "echo_npm_repository_name" {
+  type        = string
+  description = "Optional override for the npm remote repository key. Defaults to <remote_repository_name>-npm."
+  default     = ""
+}
+
+variable "echo_maven_repository_name" {
+  type        = string
+  description = "Optional override for the Maven remote repository key. Defaults to <remote_repository_name>-maven."
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
+# Shared remote-repository configuration
+# ---------------------------------------------------------------------------
+
 variable "description" {
   type        = string
-  description = "Description for the remote repository"
-  default     = "Echo Registry remote repository for container images"
+  description = "Description for the remote repositories"
+  default     = "Echo remote repository"
 }
 
 variable "notes" {
   type        = string
-  description = "Internal notes about the repository"
-  default     = "Managed by Terraform - Echo Registry integration"
+  description = "Internal notes about the repositories"
+  default     = "Managed by Terraform - Echo integration"
 }
 
 variable "includes_pattern" {
@@ -54,7 +165,7 @@ variable "excludes_pattern" {
 
 variable "repo_layout_ref" {
   type        = string
-  description = "Repository layout reference"
+  description = "Repository layout reference for the Docker remote"
   default     = "simple-default"
 }
 
@@ -126,6 +237,6 @@ variable "xray_index" {
 
 variable "property_sets" {
   type        = list(string)
-  description = "List of property sets to apply to the repository"
+  description = "List of property sets to apply to the repositories"
   default     = []
 }
