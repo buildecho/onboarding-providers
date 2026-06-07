@@ -291,3 +291,16 @@ resource "google_artifact_registry_repository_iam_binding" "writers" {
   role       = "roles/artifactregistry.writer"
   members    = var.writer_members
 }
+
+# Preserve state addresses for image-only deployments created before the
+# count -> for_each switch (the single image repo was index [0], now keyed
+# "image"). Without these, existing IAM bindings would be destroyed/recreated.
+moved {
+  from = google_artifact_registry_repository_iam_binding.readers[0]
+  to   = google_artifact_registry_repository_iam_binding.readers["image"]
+}
+
+moved {
+  from = google_artifact_registry_repository_iam_binding.writers[0]
+  to   = google_artifact_registry_repository_iam_binding.writers["image"]
+}

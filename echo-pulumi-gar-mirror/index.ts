@@ -149,6 +149,24 @@ export interface GcpGarRemoteOutputs {
      * Multi-line usage instructions for the created repositories.
      */
     usageInstructions: pulumi.Output<string>;
+
+    /**
+     * @deprecated Use imageRepositoryKey. Repository id of the Docker (image)
+     * remote, kept for backwards compatibility with the image-only module.
+     */
+    repositoryId: pulumi.Output<string | undefined>;
+
+    /**
+     * @deprecated Secret id of the Echo image access key secret, kept for
+     * backwards compatibility with the image-only module.
+     */
+    secretId: pulumi.Output<string | undefined>;
+
+    /**
+     * @deprecated Full resource name of the image secret version, kept for
+     * backwards compatibility with the image-only module.
+     */
+    secretVersionName: pulumi.Output<string | undefined>;
 }
 
 /**
@@ -179,6 +197,12 @@ export class GcpGarRemote extends pulumi.ComponentResource {
     public readonly imageRepositoryKey: pulumi.Output<string | undefined>;
     public readonly libraryRepositoryKeys: pulumi.Output<string[]>;
     public readonly usageInstructions: pulumi.Output<string>;
+    /** @deprecated Use imageRepositoryKey. */
+    public readonly repositoryId: pulumi.Output<string | undefined>;
+    /** @deprecated Image secret id, kept for backwards compatibility. */
+    public readonly secretId: pulumi.Output<string | undefined>;
+    /** @deprecated Image secret version name, kept for backwards compatibility. */
+    public readonly secretVersionName: pulumi.Output<string | undefined>;
 
     constructor(name: string, args: GcpGarRemoteInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-gar-mirror:index:GcpGarRemote", name, args, opts);
@@ -261,9 +285,15 @@ export class GcpGarRemote extends pulumi.ComponentResource {
 
             createdRepositories.push(repository);
             this.imageRepositoryKey = repository.repositoryId;
+            this.repositoryId = repository.repositoryId;
+            this.secretId = secret.secretId;
+            this.secretVersionName = echoAccessKeySecretVersion.name;
             instructions.push(`Images:  docker pull ${location}-docker.pkg.dev/${args.projectId}/${imageRepository}/static:latest`);
         } else {
             this.imageRepositoryKey = pulumi.output(undefined);
+            this.repositoryId = pulumi.output(undefined);
+            this.secretId = pulumi.output(undefined);
+            this.secretVersionName = pulumi.output(undefined);
         }
 
         // --- Library remotes (one shared library key) ---
@@ -379,10 +409,14 @@ export class GcpGarRemote extends pulumi.ComponentResource {
             }
         }
 
-        // Create IAM bindings for repository readers/writers across all created repos
+        // Create IAM bindings for repository readers/writers across all created
+        // repos. The first repo (the image remote, index 0) keeps the unindexed
+        // logical name it had in the image-only module so existing deployments
+        // don't replace their bindings; additional repos are suffixed.
+        const bindingSuffix = (i: number) => (i === 0 ? "" : `-${i}`);
         if (args.readerMembers && args.readerMembers.length > 0) {
             createdRepositories.forEach((repository, i) => {
-                new gcp.artifactregistry.RepositoryIamBinding(`${name}-readers-${i}`, {
+                new gcp.artifactregistry.RepositoryIamBinding(`${name}-readers${bindingSuffix(i)}`, {
                     repository: repository.name,
                     location: repository.location,
                     role: "roles/artifactregistry.reader",
@@ -394,7 +428,7 @@ export class GcpGarRemote extends pulumi.ComponentResource {
 
         if (args.writerMembers && args.writerMembers.length > 0) {
             createdRepositories.forEach((repository, i) => {
-                new gcp.artifactregistry.RepositoryIamBinding(`${name}-writers-${i}`, {
+                new gcp.artifactregistry.RepositoryIamBinding(`${name}-writers${bindingSuffix(i)}`, {
                     repository: repository.name,
                     location: repository.location,
                     role: "roles/artifactregistry.writer",
@@ -413,6 +447,9 @@ export class GcpGarRemote extends pulumi.ComponentResource {
             imageRepositoryKey: this.imageRepositoryKey,
             libraryRepositoryKeys: this.libraryRepositoryKeys,
             usageInstructions: this.usageInstructions,
+            repositoryId: this.repositoryId,
+            secretId: this.secretId,
+            secretVersionName: this.secretVersionName,
         });
     }
 }
