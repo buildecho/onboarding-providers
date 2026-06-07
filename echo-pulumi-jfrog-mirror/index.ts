@@ -116,6 +116,11 @@ export interface JfrogIntegrationInput {
     xrayIndex?: boolean;
     /** @default ["artifactory"] */
     propertySets?: string[];
+    /**
+     * @deprecated Accepted for backwards compatibility with the image-only
+     * module; not applied to any resource.
+     */
+    tags?: Record<string, string>;
 }
 
 /**
