@@ -12,9 +12,11 @@ locals {
 
   # Per-format repository keys (overridable, otherwise derived from the base).
   image_repository = var.echo_image_repository_name != "" ? var.echo_image_repository_name : var.repository_name
-  pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
-  npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
-  maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
+  # Library proxies are disabled for now; library locals + resources are
+  # commented out below. Re-enable them when libraries are turned on.
+  # pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
+  # npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
+  # maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
 }
 
 # Docker proxy repository for Echo
@@ -88,6 +90,8 @@ resource "nexus_repository_docker_proxy" "echo_proxy" {
 }
 
 
+# Library proxies (PyPI / npm / Maven) DISABLED for now.
+/*
 # PyPI proxy repository for Echo's PyPI index
 resource "nexus_repository_pypi_proxy" "echo_pypi" {
   count = var.create && var.echo_library_pypi ? 1 : 0
@@ -203,6 +207,7 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
 
   routing_rule = var.routing_rule
 }
+*/
 
 # Optional: Create a content selector for the repository
 resource "nexus_security_content_selector" "echo_selector" {

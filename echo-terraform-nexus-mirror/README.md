@@ -44,6 +44,8 @@ terraform init && terraform apply
   compatibility; when set they provision the Docker proxy using the image fields.
 
 ### Libraries (package registries — one shared library key)
+> **Disabled for now.** The library proxy resources are commented out in `main.tf`; these inputs are accepted but provision nothing until libraries are turned on.
+
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
 - `echo_library_key_name` / `echo_library_key_value` (string, sensitive) — library access key
 - `echo_pypi_url` (default: `"https://pypi.echohq.com"`)

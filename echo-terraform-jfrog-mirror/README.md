@@ -43,8 +43,12 @@ terraform init && terraform apply
 
 ### Libraries (package registries — one shared library key)
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
-- `echo_library_key_name` / `echo_library_key_value` (string, sensitive) — library access key
-- `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
+- `echo_library_key_value` (string, sensitive) — library access key. Authentication
+  is **token-only**: this value is the password.
+- `echo_library_key_name` (string, sensitive) — **no-op**. Accepted so customers can
+  paste the key name they generated, but Echo's library index ignores the username.
+- `echo_pypi_url` (default: `"https://pypi.echohq.com/simple"`) — PyPI is the only
+  ecosystem whose URL carries the `/simple` suffix (PEP 503 simple index)
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`

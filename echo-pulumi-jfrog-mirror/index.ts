@@ -56,13 +56,21 @@ export interface JfrogIntegrationInput {
     /** Provision the Maven remote that proxies Echo's Maven index. */
     echoLibraryMaven?: boolean;
 
-    /** Echo library access key name (username) for the library remotes. */
+    /**
+     * Echo library access key name (username) for the library remotes. No-op:
+     * Echo's library index authenticates by token only (the key value is the
+     * password), so the name is accepted but ignored.
+     */
     echoLibraryKeyName?: pulumi.Input<string>;
 
-    /** Echo library access key value (password) for the library remotes. */
+    /** Echo library access key value (password/token) for the library remotes. */
     echoLibraryKeyValue?: pulumi.Input<string>;
 
-    /** @default "https://pypi.echohq.com" */
+    /**
+     * PyPI remote URL. Alone among the ecosystems it carries the "/simple"
+     * suffix (PEP 503 simple index); npm/Maven point at the index root.
+     * @default "https://pypi.echohq.com/simple"
+     */
     echoPypiUrl?: string;
 
     /** @default "https://npm.echohq.com" */
@@ -197,6 +205,11 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             instructions.push(`Images:  docker pull <your-jfrog-domain>/${imageRepository}/static:latest`);
         }
 
+        // Library remotes (PyPI / npm / Maven) authenticate to Echo by token
+        // only: the key value is the password and `username` (the key name) is a
+        // no-op, accepted for parity with images but ignored by Echo's index.
+        // These repo types have no `enableTokenAuthentication` toggle (Docker
+        // only), so there is nothing further to set.
         const libraryCommon = {
             username: args.echoLibraryKeyName ?? "",
             password: args.echoLibraryKeyValue ?? "",
@@ -215,7 +228,7 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             const key = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
             new artifactory.RemotePypiRepository(`${name}-pypi`, {
                 key,
-                url: args.echoPypiUrl || "https://pypi.echohq.com",
+                url: args.echoPypiUrl || "https://pypi.echohq.com/simple",
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${key}/simple <package>`);

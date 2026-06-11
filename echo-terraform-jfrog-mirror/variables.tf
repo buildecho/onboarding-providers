@@ -86,8 +86,11 @@ variable "echo_library_maven" {
 }
 
 variable "echo_library_key_name" {
-  type        = string
-  description = "Echo library access key name (username) for the library remotes."
+  type = string
+  # Echo's library index authenticates by token only: the key value goes in the
+  # password field and the key name (username) is a no-op. Accepted so customers
+  # can supply the name they generated, but it does not affect authentication.
+  description = "Echo library access key name (username) for the library remotes. No-op — library auth is token-only via echo_library_key_value."
   default     = ""
   sensitive   = true
 }
@@ -101,8 +104,11 @@ variable "echo_library_key_value" {
 
 variable "echo_pypi_url" {
   type        = string
-  description = "URL of the Echo PyPI index."
-  default     = "https://pypi.echohq.com"
+  # PyPI is the only ecosystem whose remote URL carries the "/simple" suffix —
+  # Artifactory proxies Echo's PEP 503 simple index directly. npm/Maven point
+  # at the index root.
+  description = "URL of the Echo PyPI index (PEP 503 simple index, ends in /simple)."
+  default     = "https://pypi.echohq.com/simple"
 }
 
 variable "echo_npm_url" {
