@@ -10,21 +10,23 @@ locals {
   # deprecated access key was supplied.
   create_docker = var.create && (var.echo_images || nonsensitive(var.echo_access_key_name) != "")
 
-  # Provision the library secret only when at least one library format is on.
-  create_library = var.create && (var.echo_library_pypi || var.echo_library_npm || var.echo_library_maven)
+  # Library remotes are disabled for now. Library locals + resources below are
+  # commented out; re-enable them when libraries are turned on.
+  # create_library = var.create && (var.echo_library_pypi || var.echo_library_npm || var.echo_library_maven)
 
   # Per-format repository ids (overridable, otherwise derived from the base).
   image_repository = var.echo_image_repository_name != "" ? var.echo_image_repository_name : var.repository_name
-  pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
-  npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
-  maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
+  # pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
+  # npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
+  # maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
 
   # Repositories created by this module, used to fan out the IAM bindings.
   created_repositories = merge(
     local.create_docker ? { image = google_artifact_registry_repository.echo_remote_repo[0] } : {},
-    var.echo_library_pypi ? { pypi = google_artifact_registry_repository.echo_pypi[0] } : {},
-    var.echo_library_npm ? { npm = google_artifact_registry_repository.echo_npm[0] } : {},
-    var.echo_library_maven ? { maven = google_artifact_registry_repository.echo_maven[0] } : {},
+    # Library remotes disabled for now:
+    # var.echo_library_pypi ? { pypi = google_artifact_registry_repository.echo_pypi[0] } : {},
+    # var.echo_library_npm ? { npm = google_artifact_registry_repository.echo_npm[0] } : {},
+    # var.echo_library_maven ? { maven = google_artifact_registry_repository.echo_maven[0] } : {},
   )
 }
 
@@ -83,8 +85,10 @@ resource "google_secret_manager_secret_version" "echo_access_key" {
 
 # ---------------------------------------------------------------------------
 # Secret Manager — library access key (shared across library formats)
+# DISABLED for now — re-enable when libraries are turned on.
 # ---------------------------------------------------------------------------
 
+/*
 resource "google_secret_manager_secret" "echo_library_key" {
   count = local.create_library ? 1 : 0
 
@@ -107,6 +111,7 @@ resource "google_secret_manager_secret_version" "echo_library_key" {
   secret      = google_secret_manager_secret.echo_library_key[0].id
   secret_data = var.echo_library_key_value
 }
+*/
 
 # ---------------------------------------------------------------------------
 # Artifact Registry repositories
@@ -145,6 +150,8 @@ resource "google_artifact_registry_repository" "echo_remote_repo" {
   depends_on = [google_project_service.artifactregistry]
 }
 
+# Library remotes (PyPI / npm / Maven) DISABLED for now.
+/*
 # PyPI (PYTHON) remote repository for Echo's PyPI index
 resource "google_artifact_registry_repository" "echo_pypi" {
   count = var.create && var.echo_library_pypi ? 1 : 0
@@ -243,6 +250,7 @@ resource "google_artifact_registry_repository" "echo_maven" {
 
   depends_on = [google_project_service.artifactregistry]
 }
+*/
 
 # ---------------------------------------------------------------------------
 # IAM — secret accessor for the GAR service account (per created secret)
@@ -258,6 +266,8 @@ resource "google_secret_manager_secret_iam_member" "gar_secret_accessor" {
   depends_on = [google_project_service.artifactregistry]
 }
 
+# Library secret accessor DISABLED for now.
+/*
 resource "google_secret_manager_secret_iam_member" "gar_library_secret_accessor" {
   count = local.create_library ? 1 : 0
 
@@ -267,6 +277,7 @@ resource "google_secret_manager_secret_iam_member" "gar_library_secret_accessor"
 
   depends_on = [google_project_service.artifactregistry]
 }
+*/
 
 # ---------------------------------------------------------------------------
 # IAM — repository reader/writer bindings (applied per created repository)

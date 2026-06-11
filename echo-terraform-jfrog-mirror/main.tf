@@ -56,7 +56,13 @@ resource "artifactory_remote_docker_repository" "echo_remote" {
   property_sets = length(var.property_sets) > 0 ? var.property_sets : ["artifactory"]
 }
 
-# PyPI remote repository for Echo's PyPI index
+# Library remotes (PyPI / npm / Maven) authenticate to Echo by token only: the
+# library key value is the password and `username` (the key name) is a no-op,
+# accepted for parity with the image flow but ignored by Echo's index. Unlike
+# the Docker remote there is no `enable_token_authentication` toggle on these
+# repo types — the provider does not expose it.
+
+# PyPI remote repository for Echo's PyPI index (URL carries the /simple suffix)
 resource "artifactory_remote_pypi_repository" "echo_pypi" {
   count = var.create && var.echo_library_pypi ? 1 : 0
 

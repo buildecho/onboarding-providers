@@ -41,8 +41,13 @@ export const usageInstructions = integration.usageInstructions;
 
 ### Libraries (one shared library key)
 - `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` (boolean, default `false`)
-- `echoLibraryKeyName` / `echoLibraryKeyValue` — library access key
-- `echoPypiUrl` / `echoNpmUrl` / `echoMavenUrl` (defaults `https://{pypi,npm,maven}.echohq.com`)
+- `echoLibraryKeyValue` — library access key. Authentication is **token-only**: this
+  value is the password.
+- `echoLibraryKeyName` — **no-op**. Accepted for parity with the image flow, but Echo's
+  library index ignores the username.
+- `echoPypiUrl` (default `https://pypi.echohq.com/simple` — only PyPI carries the
+  `/simple` suffix) / `echoNpmUrl` (default `https://npm.echohq.com`) / `echoMavenUrl`
+  (default `https://maven.echohq.com`)
 - `echoPypiRepositoryName` / `echoNpmRepositoryName` / `echoMavenRepositoryName`
   (default → `<remoteRepositoryName>-{pypi,npm,maven}`)
 
