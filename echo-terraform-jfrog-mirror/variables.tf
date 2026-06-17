@@ -104,11 +104,10 @@ variable "echo_library_key_value" {
 
 variable "echo_pypi_url" {
   type        = string
-  # PyPI is the only ecosystem whose remote URL carries the "/simple" suffix —
-  # Artifactory proxies Echo's PEP 503 simple index directly. npm/Maven point
-  # at the index root.
-  description = "URL of the Echo PyPI index (PEP 503 simple index, ends in /simple)."
-  default     = "https://pypi.echohq.com/simple"
+  # All ecosystems point at the index root; Artifactory appends the PEP 503
+  # simple path itself when proxying.
+  description = "URL of the Echo PyPI index."
+  default     = "https://pypi.echohq.com"
 }
 
 variable "echo_npm_url" {
