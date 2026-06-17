@@ -47,8 +47,7 @@ terraform init && terraform apply
   is **token-only**: this value is the password.
 - `echo_library_key_name` (string, sensitive) — **no-op**. Accepted so customers can
   paste the key name they generated, but Echo's library index ignores the username.
-- `echo_pypi_url` (default: `"https://pypi.echohq.com/simple"`) — PyPI is the only
-  ecosystem whose URL carries the `/simple` suffix (PEP 503 simple index)
+- `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`

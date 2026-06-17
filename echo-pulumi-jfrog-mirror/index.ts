@@ -67,9 +67,9 @@ export interface JfrogIntegrationInput {
     echoLibraryKeyValue?: pulumi.Input<string>;
 
     /**
-     * PyPI remote URL. Alone among the ecosystems it carries the "/simple"
-     * suffix (PEP 503 simple index); npm/Maven point at the index root.
-     * @default "https://pypi.echohq.com/simple"
+     * PyPI remote URL. Points at the index root; Artifactory appends the
+     * PEP 503 simple path itself when proxying.
+     * @default "https://pypi.echohq.com"
      */
     echoPypiUrl?: string;
 
@@ -228,7 +228,7 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             const key = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
             new artifactory.RemotePypiRepository(`${name}-pypi`, {
                 key,
-                url: args.echoPypiUrl || "https://pypi.echohq.com/simple",
+                url: args.echoPypiUrl || "https://pypi.echohq.com",
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${key}/simple <package>`);

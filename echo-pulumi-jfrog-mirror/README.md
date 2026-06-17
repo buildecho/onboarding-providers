@@ -45,9 +45,8 @@ export const usageInstructions = integration.usageInstructions;
   value is the password.
 - `echoLibraryKeyName` — **no-op**. Accepted for parity with the image flow, but Echo's
   library index ignores the username.
-- `echoPypiUrl` (default `https://pypi.echohq.com/simple` — only PyPI carries the
-  `/simple` suffix) / `echoNpmUrl` (default `https://npm.echohq.com`) / `echoMavenUrl`
-  (default `https://maven.echohq.com`)
+- `echoPypiUrl` (default `https://pypi.echohq.com`) / `echoNpmUrl` (default
+  `https://npm.echohq.com`) / `echoMavenUrl` (default `https://maven.echohq.com`)
 - `echoPypiRepositoryName` / `echoNpmRepositoryName` / `echoMavenRepositoryName`
   (default → `<remoteRepositoryName>-{pypi,npm,maven}`)
 

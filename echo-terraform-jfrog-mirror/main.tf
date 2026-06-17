@@ -62,7 +62,7 @@ resource "artifactory_remote_docker_repository" "echo_remote" {
 # the Docker remote there is no `enable_token_authentication` toggle on these
 # repo types — the provider does not expose it.
 
-# PyPI remote repository for Echo's PyPI index (URL carries the /simple suffix)
+# PyPI remote repository for Echo's PyPI index
 resource "artifactory_remote_pypi_repository" "echo_pypi" {
   count = var.create && var.echo_library_pypi ? 1 : 0
 
