@@ -44,10 +44,18 @@ terraform init && terraform apply
   compatibility; when set they provision the Docker proxy using the image fields.
 
 ### Libraries (package registries — one shared library key)
-> **Disabled for now.** The library proxy resources are commented out in `main.tf`; these inputs are accepted but provision nothing until libraries are turned on.
+> Library proxies are provisioned with Basic/token auth. Each enabled format
+> creates a single Nexus proxy repository authenticated with the Echo library
+> access key. **Preemptive caveat:** Echo's library hosts never issue a 401
+> challenge, so they require *preemptive* auth. The `datadrivers/nexus`
+> provider cannot set Preemptive Bearer Token and exposes the `preemptive`
+> flag only on the Maven proxy, so this module uses plain Basic auth and does
+> not enable preemptive yet. Turning it on is a follow-up handled out-of-band
+> (e.g. a Nexus REST call); see datadrivers/nexus PR #586.
 
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
-- `echo_library_key_name` / `echo_library_key_value` (string, sensitive) — library access key
+- `echo_library_key_name` (string, sensitive) — Basic auth username, the Echo library access-key subject (`et-<id>`)
+- `echo_library_key_value` (string, sensitive) — Basic auth password, the library access token
 - `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)

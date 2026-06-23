@@ -87,10 +87,10 @@ variable "echo_library_maven" {
 
 variable "echo_library_key_name" {
   type = string
-  # Echo's library index authenticates by token only: the key value goes in the
-  # password field and the key name (username) is a no-op. Accepted so customers
-  # can supply the name they generated, but it does not affect authentication.
-  description = "Echo library access key name (username) for the library remotes. No-op — library auth is token-only via echo_library_key_value."
+  # The Echo library access-key SUBJECT (deterministic per tenant, "et-<id>").
+  # JFrog remotes send credentials preemptively, so Basic auth with this subject
+  # as the username and echo_library_key_value as the password authenticates.
+  description = "Echo library access key SUBJECT (et-<id>) used as the Basic auth username for the library remotes."
   default     = ""
   sensitive   = true
 }
@@ -102,12 +102,32 @@ variable "echo_library_key_value" {
   sensitive   = true
 }
 
+# Deprecated: replaced by the base-url + repo split (echo_pypi_base_url plus
+# echo_pypi_prod_repo / echo_pypi_remote_repo). PyPI now resolves through a
+# customer virtual that aggregates two smart remotes, so a single index URL no
+# longer describes the topology.
 variable "echo_pypi_url" {
   type        = string
-  # All ecosystems point at the index root; Artifactory appends the PEP 503
-  # simple path itself when proxying.
-  description = "URL of the Echo PyPI index."
+  description = "Deprecated. Replaced by echo_pypi_base_url + echo_pypi_prod_repo/echo_pypi_remote_repo. URL of the Echo PyPI index."
   default     = "https://pypi.echohq.com"
+}
+
+variable "echo_pypi_base_url" {
+  type        = string
+  description = "Base URL of the Echo Artifactory host that backs the PyPI remotes. The prod/remote repo paths are appended to it."
+  default     = "https://packages.echohq.com/artifactory"
+}
+
+variable "echo_pypi_prod_repo" {
+  type        = string
+  description = "Echo first-party local PyPI repo proxied by the echo-pypi-prod smart remote."
+  default     = "prod-pypi"
+}
+
+variable "echo_pypi_remote_repo" {
+  type        = string
+  description = "Echo upstream cache PyPI repo proxied by the echo-pypi-remote smart remote."
+  default     = "pypi-remote"
 }
 
 variable "echo_npm_url" {

@@ -12,11 +12,9 @@ locals {
 
   # Per-format repository keys (overridable, otherwise derived from the base).
   image_repository = var.echo_image_repository_name != "" ? var.echo_image_repository_name : var.repository_name
-  # Library proxies are disabled for now; library locals + resources are
-  # commented out below. Re-enable them when libraries are turned on.
-  # pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
-  # npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
-  # maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
+  pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
+  npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
+  maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
 }
 
 # Docker proxy repository for Echo
@@ -90,8 +88,19 @@ resource "nexus_repository_docker_proxy" "echo_proxy" {
 }
 
 
-# Library proxies (PyPI / npm / Maven) DISABLED for now.
-/*
+# Library proxies (PyPI / npm / Maven).
+#
+# AUTH CAVEAT (read before changing the authentication blocks below):
+# Echo's library hosts require *preemptive* auth - they never issue a 401
+# challenge, so Nexus must send credentials on the first request. The
+# datadrivers/nexus provider (v2.8.0) cannot configure Preemptive Bearer Token
+# auth at all, and exposes the `preemptive` boolean only on maven_proxy (not
+# pypi/npm). We therefore use plain Basic (`type = "username"`) auth here and do
+# NOT set `preemptive` on any block for now. Enabling preemptive auth is a
+# follow-up that must happen out-of-band (e.g. a Nexus REST call) until the
+# provider gains support. See datadrivers/nexus PR #586 (npm bearer token) and
+# the manual REST/UI flow for the preemptive toggle.
+
 # PyPI proxy repository for Echo's PyPI index
 resource "nexus_repository_pypi_proxy" "echo_pypi" {
   count = var.create && var.echo_library_pypi ? 1 : 0
@@ -119,6 +128,9 @@ resource "nexus_repository_pypi_proxy" "echo_pypi" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
+    # Basic/token auth (Echo subject + access token). Preemptive auth is
+    # required by Echo but not settable via this provider for pypi - see the
+    # AUTH CAVEAT above.
     authentication {
       type     = "username"
       username = var.echo_library_key_name
@@ -156,6 +168,9 @@ resource "nexus_repository_npm_proxy" "echo_npm" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
+    # Basic/token auth (Echo subject + access token). Preemptive auth is
+    # required by Echo but not settable via this provider for npm - see the
+    # AUTH CAVEAT above.
     authentication {
       type     = "username"
       username = var.echo_library_key_name
@@ -198,6 +213,10 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
+    # Basic/token auth (Echo subject + access token). Preemptive auth is
+    # required by Echo but not enabled here - see the AUTH CAVEAT above. Maven
+    # has a preemptive-basic variant in the provider, but we leave `preemptive`
+    # unset for now and toggle it out-of-band.
     authentication {
       type     = "username"
       username = var.echo_library_key_name
@@ -207,7 +226,6 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
 
   routing_rule = var.routing_rule
 }
-*/
 
 # Optional: Create a content selector for the repository
 resource "nexus_security_content_selector" "echo_selector" {

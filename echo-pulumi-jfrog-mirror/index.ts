@@ -57,9 +57,10 @@ export interface JfrogIntegrationInput {
     echoLibraryMaven?: boolean;
 
     /**
-     * Echo library access key name (username) for the library remotes. No-op:
-     * Echo's library index authenticates by token only (the key value is the
-     * password), so the name is accepted but ignored.
+     * Echo library access key SUBJECT (deterministic per tenant, `et-<id>`),
+     * used as the Basic-auth username on the library remotes. JFrog sends creds
+     * preemptively, so Basic with the correct subject username authenticates;
+     * this is no longer a no-op. The key value is the password.
      */
     echoLibraryKeyName?: pulumi.Input<string>;
 
@@ -67,11 +68,33 @@ export interface JfrogIntegrationInput {
     echoLibraryKeyValue?: pulumi.Input<string>;
 
     /**
-     * PyPI remote URL. Points at the index root; Artifactory appends the
-     * PEP 503 simple path itself when proxying.
-     * @default "https://pypi.echohq.com"
+     * @deprecated PyPI no longer uses a single remote. The PyPI topology is now
+     * two smart remotes (against Echo's first-party `prod-pypi` local and the
+     * `pypi-remote` upstream cache) aggregated by a customer virtual that pip
+     * resolves against. Configure via echoPypiBaseUrl / echoPypiProdRepo /
+     * echoPypiRemoteRepo instead.
      */
     echoPypiUrl?: string;
+
+    /**
+     * Host + `/artifactory` prefix for Echo's backing PyPI repositories. Each
+     * member remote derives its plain `url` (`<base>/<repo>`) and
+     * `pypiRegistryUrl` (`<base>/api/pypi/<repo>`) from it.
+     * @default "https://packages.echohq.com/artifactory"
+     */
+    echoPypiBaseUrl?: string;
+
+    /**
+     * Echo first-party PyPI local repo proxied by the `<pypi>-prod` member remote.
+     * @default "prod-pypi"
+     */
+    echoPypiProdRepo?: string;
+
+    /**
+     * Echo upstream PyPI cache repo proxied by the `<pypi>-remote` member remote.
+     * @default "pypi-remote"
+     */
+    echoPypiRemoteRepo?: string;
 
     /** @default "https://npm.echohq.com" */
     echoNpmUrl?: string;
@@ -224,14 +247,42 @@ export class JfrogIntegration extends pulumi.ComponentResource {
         };
 
         // --- Library remotes ---
+        // PyPI: a pypi remote cannot point at a virtual, so proxy each Echo
+        // backing repo with its own smart remote and aggregate them under a
+        // customer virtual that pip resolves against. A pypi remote needs both
+        // `url` (plain) and `pypiRegistryUrl` (with api/pypi). Auth is Basic
+        // (username = library key subject, password = key value); JFrog sends
+        // creds preemptively. The pypi/npm/maven remotes do not expose
+        // enableTokenAuthentication in the provider (docker-only; jfrog provider
+        // issue #1389) — if Echo ever requires Bearer, the workaround is a
+        // post-create REST PATCH {"enableTokenAuthentication":true}.
         if (args.echoLibraryPypi) {
-            const key = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
-            new artifactory.RemotePypiRepository(`${name}-pypi`, {
-                key,
-                url: args.echoPypiUrl || "https://pypi.echohq.com",
+            const pypiKey = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
+            const prodKey = `${pypiKey}-prod`;
+            const remoteKey = `${pypiKey}-remote`;
+            const base = args.echoPypiBaseUrl || "https://packages.echohq.com/artifactory";
+            const prodRepo = args.echoPypiProdRepo || "prod-pypi";
+            const remoteRepo = args.echoPypiRemoteRepo || "pypi-remote";
+
+            new artifactory.RemotePypiRepository(`${name}-pypi-prod`, {
+                key: prodKey,
+                url: `${base}/${prodRepo}`,
+                pypiRegistryUrl: `${base}/api/pypi/${prodRepo}`,
                 ...libraryCommon,
             }, { parent: this });
-            instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${key}/simple <package>`);
+            new artifactory.RemotePypiRepository(`${name}-pypi-remote`, {
+                key: remoteKey,
+                url: `${base}/${remoteRepo}`,
+                pypiRegistryUrl: `${base}/api/pypi/${remoteRepo}`,
+                ...libraryCommon,
+            }, { parent: this });
+            new artifactory.VirtualPypiRepository(`${name}-pypi`, {
+                key: pypiKey,
+                repositories: [prodKey, remoteKey],
+                description,
+                notes,
+            }, { parent: this });
+            instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${pypiKey}/simple <package>`);
         }
 
         if (args.echoLibraryNpm) {
