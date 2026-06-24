@@ -264,24 +264,28 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             const prodRepo = args.echoPypiProdRepo || "prod-pypi";
             const remoteRepo = args.echoPypiRemoteRepo || "pypi-remote";
 
-            new artifactory.RemotePypiRepository(`${name}-pypi-prod`, {
+            const pypiProd = new artifactory.RemotePypiRepository(`${name}-pypi-prod`, {
                 key: prodKey,
                 url: `${base}/${prodRepo}`,
                 pypiRegistryUrl: `${base}/api/pypi/${prodRepo}`,
                 ...libraryCommon,
             }, { parent: this });
-            new artifactory.RemotePypiRepository(`${name}-pypi-remote`, {
+            const pypiRemote = new artifactory.RemotePypiRepository(`${name}-pypi-remote`, {
                 key: remoteKey,
                 url: `${base}/${remoteRepo}`,
                 pypiRegistryUrl: `${base}/api/pypi/${remoteRepo}`,
                 ...libraryCommon,
             }, { parent: this });
+            // The virtual references the two remotes by key (plain strings), so
+            // Pulumi can't infer the dependency; dependsOn forces the members to
+            // exist before the virtual is created (Artifactory rejects a virtual
+            // that lists not-yet-created members). Mirrors the Terraform depends_on.
             new artifactory.VirtualPypiRepository(`${name}-pypi`, {
                 key: pypiKey,
                 repositories: [prodKey, remoteKey],
                 description,
                 notes,
-            }, { parent: this });
+            }, { parent: this, dependsOn: [pypiProd, pypiRemote] });
             instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${pypiKey}/simple <package>`);
         }
 
