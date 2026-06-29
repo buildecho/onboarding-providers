@@ -73,7 +73,7 @@ variable "echo_library_maven" {
 
 variable "echo_library_key_name" {
   type        = string
-  description = "Echo library access key name (username) for the library proxies - get this from the Echo platform"
+  description = "Basic auth username for the library proxies: the Echo library access-key subject (et-<id>). Get this from the Echo platform."
   sensitive   = true
   default     = ""
 }

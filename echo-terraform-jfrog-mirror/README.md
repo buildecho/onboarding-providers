@@ -43,15 +43,24 @@ terraform init && terraform apply
 
 ### Libraries (package registries — one shared library key)
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
-- `echo_library_key_value` (string, sensitive) — library access key. Authentication
-  is **token-only**: this value is the password.
-- `echo_library_key_name` (string, sensitive) — **no-op**. Accepted so customers can
-  paste the key name they generated, but Echo's library index ignores the username.
-- `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
+- `echo_library_key_value` (string, sensitive) — library access key (the password).
+- `echo_library_key_name` (string, sensitive) — the Echo library access-key **subject**
+  (`et-<id>`) used as the Basic auth username. Required: JFrog remotes send credentials
+  preemptively, so the correct subject authenticates.
+- `echo_pypi_base_url` (default: `"https://packages.echohq.com/artifactory"`) — Echo host
+  backing the PyPI remotes
+- `echo_pypi_prod_repo` (default: `"prod-pypi"`) — Echo first-party local repo
+- `echo_pypi_remote_repo` (default: `"pypi-remote"`) — Echo upstream cache repo
+- `echo_pypi_url` — **deprecated**, replaced by `echo_pypi_base_url` + the repo split
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
   (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven}`)
+
+> **PyPI topology:** a JFrog pypi remote cannot point at a virtual, so enabling
+> `echo_library_pypi` creates **two smart remotes** (`<pypi>-prod`, `<pypi>-remote`)
+> aggregated by **one virtual** (`<pypi>`). pip resolves against the virtual. npm and
+> Maven remain single smart remotes.
 
 ### Shared
 - `create` (bool, default: `true`)

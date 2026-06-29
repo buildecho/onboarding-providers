@@ -41,14 +41,33 @@ export const usageInstructions = integration.usageInstructions;
 
 ### Libraries (one shared library key)
 - `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` (boolean, default `false`)
-- `echoLibraryKeyValue` — library access key. Authentication is **token-only**: this
-  value is the password.
-- `echoLibraryKeyName` — **no-op**. Accepted for parity with the image flow, but Echo's
-  library index ignores the username.
-- `echoPypiUrl` (default `https://pypi.echohq.com`) / `echoNpmUrl` (default
-  `https://npm.echohq.com`) / `echoMavenUrl` (default `https://maven.echohq.com`)
+- `echoLibraryKeyValue` — library access key value (the Basic-auth password).
+- `echoLibraryKeyName` — the Echo library access key **subject** (deterministic per
+  tenant, `et-<id>`), used as the Basic-auth username. JFrog sends credentials
+  preemptively, so Basic with the correct subject authenticates.
+- `echoNpmUrl` (default `https://npm.echohq.com`) / `echoMavenUrl` (default
+  `https://maven.echohq.com`)
 - `echoPypiRepositoryName` / `echoNpmRepositoryName` / `echoMavenRepositoryName`
   (default → `<remoteRepositoryName>-{pypi,npm,maven}`)
+
+#### PyPI topology
+A pypi remote cannot point at a virtual, so PyPI provisions **two smart remotes
+aggregated by a customer virtual** that pip resolves against:
+- `<pypi>` (virtual) — `repositories: [<pypi>-prod, <pypi>-remote]`; this is the key in
+  the `--index-url`.
+- `<pypi>-prod` (remote) — proxies Echo's first-party local `prod-pypi`.
+- `<pypi>-remote` (remote) — proxies Echo's upstream cache `pypi-remote`.
+
+Each member remote sets both `url` (`<base>/<repo>`) and `pypiRegistryUrl`
+(`<base>/api/pypi/<repo>`); `pypiRepositorySuffix` stays the default `simple`.
+- `echoPypiBaseUrl` (default `https://packages.echohq.com/artifactory`) — host + prefix
+  for the backing repos
+- `echoPypiProdRepo` (default `prod-pypi`) / `echoPypiRemoteRepo` (default `pypi-remote`)
+- `echoPypiUrl` — **deprecated**, the single-remote PyPI URL is no longer used
+
+> The pypi/npm/maven remotes do not expose `enableTokenAuthentication` in the provider
+> (docker-only; jfrog provider issue #1389). If Echo ever requires Bearer, PATCH
+> `{"enableTokenAuthentication":true}` via REST after create.
 
 ### Shared
 - `remoteRepositoryName` (string, default `echo`) — base name; per-format repos derive from it
