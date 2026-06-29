@@ -212,8 +212,7 @@ export class GcpGarRemote extends pulumi.ComponentResource {
         const repositoryName = args.repositoryName || "echo";
         const description = args.description || "Remote repository for Echo Registry integration";
         const imageSecretName = args.echoAccessKeySecretName || "echo-gar-mirror-secret";
-        // Libraries disabled for now.
-        // const librarySecretName = args.echoLibraryKeySecretName || "echo-gar-mirror-library-secret";
+        const librarySecretName = args.echoLibraryKeySecretName || "echo-gar-mirror-library-secret";
 
         const labels = { ...args.labels };
 
@@ -298,12 +297,11 @@ export class GcpGarRemote extends pulumi.ComponentResource {
         }
 
         // --- Library remotes (one shared library key) ---
-        // DISABLED for now. The library remotes below are commented out;
-        // re-enable them when libraries are turned on. The empty
-        // `libraryRepositoryKeys` keeps the output contract intact ([] for now).
+        // Each remote authenticates to Echo with the shared library key
+        // (username = echoLibraryKeyName, password from the library secret);
+        // GAR delivers the credentials to the upstream natively.
         const libraryRepositoryKeys: pulumi.Output<string>[] = [];
 
-        /*
         const createLibrary = args.echoLibraryPypi === true || args.echoLibraryNpm === true || args.echoLibraryMaven === true;
 
         if (createLibrary) {
@@ -414,7 +412,6 @@ export class GcpGarRemote extends pulumi.ComponentResource {
                 instructions.push(`Maven:   add https://${location}-maven.pkg.dev/${args.projectId}/${key} as a repository in your settings.xml`);
             }
         }
-        */
 
         // Create IAM bindings for repository readers/writers across all created
         // repos. The first repo (the image remote, index 0) keeps the unindexed

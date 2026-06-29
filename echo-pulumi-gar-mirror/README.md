@@ -45,7 +45,6 @@ export const usage = remote.usageInstructions;
   compatibility; provisions the Docker remote when set.
 
 ### Libraries (package registries — one shared library key)
-> **Disabled for now.** The library remotes are commented out in `index.ts`; these inputs are accepted but provision nothing until libraries are turned on.
 
 - `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` (boolean, default: `false`)
 - `echoLibraryKeyName` / `echoLibraryKeyValue` (Input<string>, secret) — library access key
