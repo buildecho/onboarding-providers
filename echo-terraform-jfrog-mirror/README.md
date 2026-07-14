@@ -48,19 +48,31 @@ terraform init && terraform apply
   (`et-<id>`) used as the Basic auth username. Required: JFrog remotes send credentials
   preemptively, so the correct subject authenticates.
 - `echo_pypi_base_url` (default: `"https://packages.echohq.com/artifactory"`) — Echo host
-  backing the PyPI remotes
-- `echo_pypi_prod_repo` (default: `"prod-pypi"`) — Echo first-party local repo
-- `echo_pypi_remote_repo` (default: `"pypi-remote"`) — Echo upstream cache repo
-- `echo_pypi_url` — **deprecated**, replaced by `echo_pypi_base_url` + the repo split
+  backing the PyPI remote
+- `echo_pypi_repo` (default: `"pypi"`) — Echo pypi repository path segment
+- `echo_pypi_url` — **deprecated**, replaced by `echo_pypi_base_url` + `echo_pypi_repo`
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
   (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven}`)
 
-> **PyPI topology:** a JFrog pypi remote cannot point at a virtual, so enabling
-> `echo_library_pypi` creates **two smart remotes** (`<pypi>-prod`, `<pypi>-remote`)
-> aggregated by **one virtual** (`<pypi>`). pip resolves against the virtual. npm and
-> Maven remain single smart remotes.
+> **PyPI topology:** JFrog now supports a pypi remote whose upstream is a virtual,
+> so enabling `echo_library_pypi` creates a **single smart remote** (`<pypi>`) like
+> npm and Maven, pointing at Echo's virtual `pypi`
+> (URL `https://packages.echohq.com/artifactory/pypi`, Registry URL
+> `https://packages.echohq.com/artifactory/api/pypi/pypi`). pip resolves against it.
+>
+> **Migrating from the two-remote topology:** the old layout created remotes
+> `<pypi>-prod` and `<pypi>-remote` plus a virtual `<pypi>`. Upgrading, terraform
+> destroys all three and creates remote `<pypi>`. Because the old virtual and the
+> new remote share the same key, destroy the virtual first so the new remote's
+> key is free:
+>
+> ```bash
+> terraform destroy -target=artifactory_virtual_pypi_repository.echo_pypi
+> ```
+>
+> then `terraform apply` (or simply apply twice).
 
 ### Shared
 - `create` (bool, default: `true`)

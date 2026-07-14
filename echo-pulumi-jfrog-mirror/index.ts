@@ -68,33 +68,25 @@ export interface JfrogIntegrationInput {
     echoLibraryKeyValue?: pulumi.Input<string>;
 
     /**
-     * @deprecated PyPI no longer uses a single remote. The PyPI topology is now
-     * two smart remotes (against Echo's first-party `prod-pypi` local and the
-     * `pypi-remote` upstream cache) aggregated by a customer virtual that pip
-     * resolves against. Configure via echoPypiBaseUrl / echoPypiProdRepo /
-     * echoPypiRemoteRepo instead.
+     * @deprecated PyPI no longer uses a standalone index URL. The PyPI topology
+     * is now a single smart remote pointing at Echo's `pypi` virtual. Configure
+     * via echoPypiBaseUrl / echoPypiRepo instead.
      */
     echoPypiUrl?: string;
 
     /**
-     * Host + `/artifactory` prefix for Echo's backing PyPI repositories. Each
-     * member remote derives its plain `url` (`<base>/<repo>`) and
-     * `pypiRegistryUrl` (`<base>/api/pypi/<repo>`) from it.
+     * Host + `/artifactory` prefix for Echo's backing PyPI repository. The remote
+     * derives its plain `url` (`<base>/<repo>`) and `pypiRegistryUrl`
+     * (`<base>/api/pypi/<repo>`) from it.
      * @default "https://packages.echohq.com/artifactory"
      */
     echoPypiBaseUrl?: string;
 
     /**
-     * Echo first-party PyPI local repo proxied by the `<pypi>-prod` member remote.
-     * @default "prod-pypi"
+     * Echo pypi repository path segment proxied by the PyPI smart remote.
+     * @default "pypi"
      */
-    echoPypiProdRepo?: string;
-
-    /**
-     * Echo upstream PyPI cache repo proxied by the `<pypi>-remote` member remote.
-     * @default "pypi-remote"
-     */
-    echoPypiRemoteRepo?: string;
+    echoPypiRepo?: string;
 
     /** @default "https://npm.echohq.com" */
     echoNpmUrl?: string;
@@ -247,45 +239,26 @@ export class JfrogIntegration extends pulumi.ComponentResource {
         };
 
         // --- Library remotes ---
-        // PyPI: a pypi remote cannot point at a virtual, so proxy each Echo
-        // backing repo with its own smart remote and aggregate them under a
-        // customer virtual that pip resolves against. A pypi remote needs both
-        // `url` (plain) and `pypiRegistryUrl` (with api/pypi). Auth is Basic
-        // (username = library key subject, password = key value); JFrog sends
-        // creds preemptively. The pypi/npm/maven remotes do not expose
+        // PyPI: JFrog now supports a pypi remote whose upstream is a virtual, so
+        // PyPI is a single smart remote (like npm/Maven) pointing at Echo's `pypi`
+        // virtual that pip resolves against. A pypi remote needs both `url`
+        // (plain) and `pypiRegistryUrl` (with api/pypi). Auth is Basic (username =
+        // library key subject, password = key value); JFrog sends creds
+        // preemptively. The pypi/npm/maven remotes do not expose
         // enableTokenAuthentication in the provider (docker-only; jfrog provider
         // issue #1389) — if Echo ever requires Bearer, the workaround is a
         // post-create REST PATCH {"enableTokenAuthentication":true}.
         if (args.echoLibraryPypi) {
             const pypiKey = args.echoPypiRepositoryName || `${repositoryName}-pypi`;
-            const prodKey = `${pypiKey}-prod`;
-            const remoteKey = `${pypiKey}-remote`;
             const base = args.echoPypiBaseUrl || "https://packages.echohq.com/artifactory";
-            const prodRepo = args.echoPypiProdRepo || "prod-pypi";
-            const remoteRepo = args.echoPypiRemoteRepo || "pypi-remote";
+            const repo = args.echoPypiRepo || "pypi";
 
-            const pypiProd = new artifactory.RemotePypiRepository(`${name}-pypi-prod`, {
-                key: prodKey,
-                url: `${base}/${prodRepo}`,
-                pypiRegistryUrl: `${base}/api/pypi/${prodRepo}`,
-                ...libraryCommon,
-            }, { parent: this });
-            const pypiRemote = new artifactory.RemotePypiRepository(`${name}-pypi-remote`, {
-                key: remoteKey,
-                url: `${base}/${remoteRepo}`,
-                pypiRegistryUrl: `${base}/api/pypi/${remoteRepo}`,
-                ...libraryCommon,
-            }, { parent: this });
-            // The virtual references the two remotes by key (plain strings), so
-            // Pulumi can't infer the dependency; dependsOn forces the members to
-            // exist before the virtual is created (Artifactory rejects a virtual
-            // that lists not-yet-created members). Mirrors the Terraform depends_on.
-            new artifactory.VirtualPypiRepository(`${name}-pypi`, {
+            new artifactory.RemotePypiRepository(`${name}-pypi`, {
                 key: pypiKey,
-                repositories: [prodKey, remoteKey],
-                description,
-                notes,
-            }, { parent: this, dependsOn: [pypiProd, pypiRemote] });
+                url: `${base}/${repo}`,
+                pypiRegistryUrl: `${base}/api/pypi/${repo}`,
+                ...libraryCommon,
+            }, { parent: this });
             instructions.push(`PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${pypiKey}/simple <package>`);
         }
 
