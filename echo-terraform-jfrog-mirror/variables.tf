@@ -103,31 +103,24 @@ variable "echo_library_key_value" {
 }
 
 # Deprecated: replaced by the base-url + repo split (echo_pypi_base_url plus
-# echo_pypi_prod_repo / echo_pypi_remote_repo). PyPI now resolves through a
-# customer virtual that aggregates two smart remotes, so a single index URL no
-# longer describes the topology.
+# echo_pypi_repo). PyPI now resolves through a single smart remote pointing at
+# Echo's virtual, so a standalone index URL no longer describes the topology.
 variable "echo_pypi_url" {
   type        = string
-  description = "Deprecated. Replaced by echo_pypi_base_url + echo_pypi_prod_repo/echo_pypi_remote_repo. URL of the Echo PyPI index."
+  description = "Deprecated. Replaced by echo_pypi_base_url + echo_pypi_repo. URL of the Echo PyPI index."
   default     = "https://pypi.echohq.com"
 }
 
 variable "echo_pypi_base_url" {
   type        = string
-  description = "Base URL of the Echo Artifactory host that backs the PyPI remotes. The prod/remote repo paths are appended to it."
+  description = "Base URL of the Echo Artifactory host that backs the PyPI remote. The repo path is appended to it."
   default     = "https://packages.echohq.com/artifactory"
 }
 
-variable "echo_pypi_prod_repo" {
+variable "echo_pypi_repo" {
   type        = string
-  description = "Echo first-party local PyPI repo proxied by the echo-pypi-prod smart remote."
-  default     = "prod-pypi"
-}
-
-variable "echo_pypi_remote_repo" {
-  type        = string
-  description = "Echo upstream cache PyPI repo proxied by the echo-pypi-remote smart remote."
-  default     = "pypi-remote"
+  description = "Echo pypi repository path segment proxied by the PyPI smart remote."
+  default     = "pypi"
 }
 
 variable "echo_npm_url" {

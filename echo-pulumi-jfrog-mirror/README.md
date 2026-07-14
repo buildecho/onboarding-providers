@@ -51,19 +51,26 @@ export const usageInstructions = integration.usageInstructions;
   (default → `<remoteRepositoryName>-{pypi,npm,maven}`)
 
 #### PyPI topology
-A pypi remote cannot point at a virtual, so PyPI provisions **two smart remotes
-aggregated by a customer virtual** that pip resolves against:
-- `<pypi>` (virtual) — `repositories: [<pypi>-prod, <pypi>-remote]`; this is the key in
-  the `--index-url`.
-- `<pypi>-prod` (remote) — proxies Echo's first-party local `prod-pypi`.
-- `<pypi>-remote` (remote) — proxies Echo's upstream cache `pypi-remote`.
+JFrog now supports a pypi remote whose upstream is a virtual, so PyPI is a
+**single smart remote** (like npm and Maven) pointing at Echo's virtual `pypi`
+that pip resolves against:
+- `<pypi>` (remote) — URL `https://packages.echohq.com/artifactory/pypi`, Registry URL
+  `https://packages.echohq.com/artifactory/api/pypi/pypi`; this is the key in the
+  `--index-url`.
 
-Each member remote sets both `url` (`<base>/<repo>`) and `pypiRegistryUrl`
+The remote sets both `url` (`<base>/<repo>`) and `pypiRegistryUrl`
 (`<base>/api/pypi/<repo>`); `pypiRepositorySuffix` stays the default `simple`.
 - `echoPypiBaseUrl` (default `https://packages.echohq.com/artifactory`) — host + prefix
-  for the backing repos
-- `echoPypiProdRepo` (default `prod-pypi`) / `echoPypiRemoteRepo` (default `pypi-remote`)
-- `echoPypiUrl` — **deprecated**, the single-remote PyPI URL is no longer used
+  for the backing repo
+- `echoPypiRepo` (default `pypi`) — Echo pypi repository path segment
+- `echoPypiUrl` — **deprecated**, the standalone PyPI index URL is no longer used
+
+> **Migrating from the two-remote topology:** the old layout created remotes
+> `<pypi>-prod` and `<pypi>-remote` plus a virtual `<pypi>`. Upgrading, Pulumi
+> destroys all three and creates remote `<pypi>`. Because the old virtual and the
+> new remote share the same key, destroy the virtual first (e.g.
+> `pulumi destroy --target '**-pypi'` for the virtual) so the new remote's key is
+> free, or run the update twice.
 
 > The pypi/npm/maven remotes do not expose `enableTokenAuthentication` in the provider
 > (docker-only; jfrog provider issue #1389). If Echo ever requires Bearer, PATCH
