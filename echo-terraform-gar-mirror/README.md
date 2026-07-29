@@ -53,7 +53,7 @@ terraform init && terraform apply
 - `echo_library_key_name` / `echo_library_key_value` (string, sensitive) — library access key
 - `echo_library_key_secret_name` (string, default: `"echo-gar-mirror-library-secret"`) — Secret Manager secret name for the library key
 - `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
-- `echo_npm_url` (default: `"https://npm.echohq.com"` — Echo npm serves its own tarballs, so the upstream is the vanity host)
+- `echo_npm_url` (default: `"https://npm.echohq.com/artifactory/api/npm/npm"` — vanity host, path retained so GAR rewrites tarball URLs correctly)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
   (string, default: `""` → `<repository_name>-{pypi,npm,maven}`)

@@ -50,7 +50,7 @@ export const usage = remote.usageInstructions;
 - `echoLibraryKeyName` / `echoLibraryKeyValue` (Input<string>, secret) — library access key
 - `echoLibraryKeySecretName` (string, default: `echo-gar-mirror-library-secret`) — Secret Manager secret name for the library key
 - `echoPypiUrl` (default: `https://pypi.echohq.com`)
-- `echoNpmUrl` (default: `https://npm.echohq.com` — Echo npm serves its own tarballs, so the upstream is the vanity host)
+- `echoNpmUrl` (default: `https://npm.echohq.com/artifactory/api/npm/npm` — vanity host, path retained so GAR rewrites tarball URLs correctly)
 - `echoMavenUrl` (default: `https://maven.echohq.com`)
 - `echoPypiRepositoryName` / `echoNpmRepositoryName` / `echoMavenRepositoryName`
   (string, default: `""` → `<repositoryName>-{pypi,npm,maven}`)
