@@ -90,16 +90,23 @@ resource "nexus_repository_docker_proxy" "echo_proxy" {
 
 # Library proxies (PyPI / npm / Maven).
 #
-# AUTH CAVEAT (read before changing the authentication blocks below):
-# Echo's library hosts require *preemptive* auth - they never issue a 401
-# challenge, so Nexus must send credentials on the first request. The
-# datadrivers/nexus provider (v2.8.0) cannot configure Preemptive Bearer Token
-# auth at all, and exposes the `preemptive` boolean only on maven_proxy (not
-# pypi/npm). We therefore use plain Basic (`type = "username"`) auth here and do
-# NOT set `preemptive` on any block for now. Enabling preemptive auth is a
-# follow-up that must happen out-of-band (e.g. a Nexus REST call) until the
-# provider gains support. See datadrivers/nexus PR #586 (npm bearer token) and
-# the manual REST/UI flow for the preemptive toggle.
+# AUTH: plain Basic (`type = "username"`) is correct and sufficient. Echo's
+# library hosts answer unauthenticated requests with
+# `401 WWW-Authenticate: Basic`, so Nexus authenticates on challenge and does not
+# need to send credentials preemptively. `preemptive` is deliberately left unset
+# on every block below.
+#
+# This previously carried the opposite caveat. Echo used to run Artifactory with
+# anonymous access enabled, which meant unauthorized requests were authenticated
+# *as anonymous* and denied with 403 - never 401, and never with a
+# WWW-Authenticate header - so a client waiting to be challenged never sent
+# credentials at all. Echo's package proxies now issue the challenge at the edge.
+#
+# Verified against Nexus 3.94.1 with `preemptive` explicitly false: the packument
+# and tarball both resolve, and npm 12 (allow-remote=none) installs through the
+# proxy. Control run with the identical config against a host that does not
+# challenge fails with 404, confirming the challenge is what makes this work.
+# ECH-6223.
 
 # PyPI proxy repository for Echo's PyPI index
 resource "nexus_repository_pypi_proxy" "echo_pypi" {
@@ -128,9 +135,8 @@ resource "nexus_repository_pypi_proxy" "echo_pypi" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
-    # Basic/token auth (Echo subject + access token). Preemptive auth is
-    # required by Echo but not settable via this provider for pypi - see the
-    # AUTH CAVEAT above.
+    # Basic/token auth (Echo subject + access token). Echo challenges with 401,
+    # so challenge-response Basic is sufficient - see the AUTH note above.
     authentication {
       type     = "username"
       username = var.echo_library_key_name
@@ -168,9 +174,8 @@ resource "nexus_repository_npm_proxy" "echo_npm" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
-    # Basic/token auth (Echo subject + access token). Preemptive auth is
-    # required by Echo but not settable via this provider for npm - see the
-    # AUTH CAVEAT above.
+    # Basic/token auth (Echo subject + access token). Echo challenges with 401,
+    # so challenge-response Basic is sufficient - see the AUTH note above.
     authentication {
       type     = "username"
       username = var.echo_library_key_name
@@ -213,10 +218,10 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
-    # Basic/token auth (Echo subject + access token). Preemptive auth is
-    # required by Echo but not enabled here - see the AUTH CAVEAT above. Maven
-    # has a preemptive-basic variant in the provider, but we leave `preemptive`
-    # unset for now and toggle it out-of-band.
+    # Basic/token auth (Echo subject + access token). Echo challenges with 401,
+    # so challenge-response Basic is sufficient - see the AUTH note above. The
+    # provider exposes a preemptive variant for maven; we leave it unset because
+    # it is no longer needed.
     authentication {
       type     = "username"
       username = var.echo_library_key_name

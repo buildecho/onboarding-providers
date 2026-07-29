@@ -97,10 +97,12 @@ export interface GcpGarRemoteInput {
     echoPypiUrl?: string;
 
     /**
-     * GAR rewrites tarball URLs in npm metadata and rejects hosts that differ
-     * from the upstream; Echo npm metadata serves tarballs from
-     * packages.echohq.com, so the remote must point there (not npm.echohq.com).
-     * @default "https://packages.echohq.com/artifactory/api/npm/npm"
+     * Echo npm metadata now stamps tarball URLs on npm.echohq.com itself, so the
+     * remote points at the vanity host like pypi and maven already do. This used
+     * to default to packages.echohq.com/artifactory/api/npm/npm because GAR
+     * rejects tarball hosts that differ from the upstream, and Echo served
+     * tarballs from packages.echohq.com. ECH-6223.
+     * @default "https://npm.echohq.com"
      */
     echoNpmUrl?: string;
 
@@ -376,10 +378,10 @@ export class GcpGarRemote extends pulumi.ComponentResource {
                     mode: "REMOTE_REPOSITORY",
                     description: description,
                     remoteRepositoryConfig: {
-                        description: "Remote repository pointing to Echo npm (packages.echohq.com)",
+                        description: "Remote repository pointing to Echo npm (npm.echohq.com)",
                         npmRepository: {
                             customRepository: {
-                                uri: args.echoNpmUrl || "https://packages.echohq.com/artifactory/api/npm/npm",
+                                uri: args.echoNpmUrl || "https://npm.echohq.com",
                             },
                         },
                         upstreamCredentials: libraryUpstreamCredentials,

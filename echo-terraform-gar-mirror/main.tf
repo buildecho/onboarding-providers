@@ -194,7 +194,7 @@ resource "google_artifact_registry_repository" "echo_npm" {
   mode          = "REMOTE_REPOSITORY"
 
   remote_repository_config {
-    description = "Remote repository pointing to Echo npm (packages.echohq.com)"
+    description = "Remote repository pointing to Echo npm (npm.echohq.com)"
 
     npm_repository {
       custom_repository {

@@ -159,12 +159,14 @@ variable "echo_pypi_url" {
 }
 
 variable "echo_npm_url" {
-  # GAR rewrites tarball URLs in npm metadata and rejects hosts that differ
-  # from the upstream; Echo npm metadata serves tarballs from
-  # packages.echohq.com, so the remote must point there (not npm.echohq.com).
+  # Echo npm metadata now stamps tarball URLs on npm.echohq.com itself, so the
+  # remote points at the vanity host like pypi and maven already do. This used to
+  # default to packages.echohq.com/artifactory/api/npm/npm because GAR rejects
+  # tarball hosts that differ from the upstream, and Echo served tarballs from
+  # packages.echohq.com. ECH-6223.
   description = "URL of the Echo npm index."
   type        = string
-  default     = "https://packages.echohq.com/artifactory/api/npm/npm"
+  default     = "https://npm.echohq.com"
 
   validation {
     condition     = can(regex("^https://", var.echo_npm_url))
