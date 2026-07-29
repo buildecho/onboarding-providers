@@ -46,12 +46,16 @@ terraform init && terraform apply
 ### Libraries (package registries — one shared library key)
 > Library proxies are provisioned with Basic/token auth. Each enabled format
 > creates a single Nexus proxy repository authenticated with the Echo library
-> access key. **Preemptive caveat:** Echo's library hosts never issue a 401
-> challenge, so they require *preemptive* auth. The `datadrivers/nexus`
-> provider cannot set Preemptive Bearer Token and exposes the `preemptive`
-> flag only on the Maven proxy, so this module uses plain Basic auth and does
-> not enable preemptive yet. Turning it on is a follow-up handled out-of-band
-> (e.g. a Nexus REST call); see datadrivers/nexus PR #586.
+> access key. Plain Basic is sufficient: Echo's library hosts answer
+> unauthenticated requests with `401 WWW-Authenticate: Basic`, so Nexus
+> authenticates on challenge and `preemptive` is left unset on every block.
+>
+> This previously carried the opposite caveat — Echo used to deny unauthorized
+> requests with `403` and no `WWW-Authenticate` header, so a client waiting to be
+> challenged never sent credentials, and preemptive auth (which the
+> `datadrivers/nexus` provider cannot configure for pypi/npm) was the only way
+> through. Echo now issues the challenge at the edge, so the provider's plain
+> `type = "username"` auth works for all three formats.
 
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
 - `echo_library_key_name` (string, sensitive) — Basic auth username, the Echo library access-key subject (`et-<id>`)
