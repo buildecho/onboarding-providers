@@ -1,9 +1,9 @@
 # Echo JFrog Remote Repository - Pulumi Component
 
 Pulumi component that configures JFrog Artifactory as a proxy for Echo. One
-component provisions a Docker remote for **images** and/or PyPI / npm / Maven
-remotes for **libraries**, based on the inputs. Each repository is created only
-when its flag is set.
+component provisions a Docker remote for **images**, PyPI / npm / Maven remotes
+for **libraries** and a Debian remote for **OS packages**, based on the inputs.
+Each repository is created only when its flag is set.
 
 ## Install
 ```bash
@@ -25,6 +25,10 @@ const integration = new JfrogIntegration("echo-integration", {
   echoLibraryNpm: true,
   echoLibraryKeyName: config.requireSecret("echoLibraryKeyName"),
   echoLibraryKeyValue: config.requireSecret("echoLibraryKeyValue"),
+
+  // OS packages
+  echoOsPackages: true,
+  echoOsPackagesUrl: config.require("echoOsPackagesUrl"),
 });
 
 export const usageInstructions = integration.usageInstructions;
@@ -75,6 +79,25 @@ The remote sets both `url` (`<base>/<repo>`) and `pypiRegistryUrl`
 > The pypi/npm/maven remotes do not expose `enableTokenAuthentication` in the provider
 > (docker-only; jfrog provider issue #1389). If Echo ever requires Bearer, PATCH
 > `{"enableTokenAuthentication":true}` via REST after create.
+
+### OS packages (Debian)
+- `echoOsPackages` (boolean, default `false`) — provision the Debian remote
+- `echoOsPackagesUrl` (string) — the Echo Debian repository URL. **Required when
+  `echoOsPackages` is set**; there is intentionally no default, and the component
+  throws if it is missing. Copy it from the Integrations page in the Echo platform.
+- `echoDebRepositoryName` (default → `<remoteRepositoryName>-deb`)
+
+> **Consuming the mirror:** OS package mirroring is supported for **Echo-based
+> images only**. Those images already ship Echo's apt signing key and source, so
+> there is no keyring or `sources.list` setup. In your Dockerfile, swap the
+> source URL to the new remote:
+>
+> ```dockerfile
+> FROM echo/someimage:latest
+> ARG APT_MIRROR=https://<your-jfrog-domain>/artifactory/echo-deb
+> RUN echo-apt-mirror $APT_MIRROR
+> RUN apt-get update && apt-get install -y my-package
+> ```
 
 ### Shared
 - `remoteRepositoryName` (string, default `echo`) — base name; per-format repos derive from it

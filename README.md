@@ -28,12 +28,16 @@ Infrastructure-as-code templates to integrate container registries with Echo reg
 
 ### JFrog Artifactory
 
+Mirrors images, libraries (PyPI / npm / Maven) and OS packages (Debian).
+
 | Tool | Status | Directory |
 |------|--------|-----------|
 | **Terraform** | ✅ Ready | [`/echo-terraform-jfrog-mirror`](./echo-terraform-jfrog-mirror) |
 | **Pulumi** | ✅ Ready | [`/echo-pulumi-jfrog-mirror`](./echo-pulumi-jfrog-mirror) |
 
 ### Sonatype Nexus Docker Proxy
+
+Mirrors images, libraries (npm / Maven) and OS packages (Debian).
 
 | Tool | Status | Directory |
 |------|--------|-----------|

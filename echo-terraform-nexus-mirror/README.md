@@ -1,8 +1,9 @@
 # Echo Nexus Mirror - Terraform Module
 
 Configures Sonatype Nexus as a proxy for Echo. One module provisions a Docker
-proxy for **images** and/or PyPI / npm / Maven proxies for **libraries**, based
-on the inputs. Each repository is created only when its flag is set.
+proxy for **images**, PyPI / npm / Maven proxies for **libraries** and an apt
+proxy for **OS packages**, based on the inputs. Each repository is created only
+when its flag is set.
 
 ## Quickstart
 
@@ -21,6 +22,10 @@ module "echo_nexus_mirror" {
   echo_library_npm       = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
+
+  # OS packages (URL comes from the Echo platform)
+  echo_os_packages     = true
+  echo_os_packages_url = var.echo_os_packages_url
 }
 
 output "usage_instructions" {
@@ -67,6 +72,29 @@ terraform init && terraform apply
   (string, default: `""` → `<repository_name>-{pypi,npm,maven}`)
 - `maven_version_policy` (string, default: `"MIXED"`) / `maven_layout_policy` (string, default: `"PERMISSIVE"`)
 
+### OS packages (Debian)
+- `echo_os_packages` (bool, default: `false`) — provision the apt proxy
+- `echo_os_packages_url` (string, default: `""`) — the Echo Debian repository URL.
+  **Required when `echo_os_packages` is enabled**; there is intentionally no default.
+  Copy it from the Integrations page in the Echo platform.
+- `echo_deb_repository_name` (string, default: `""` → `<repository_name>-deb`)
+- `echo_os_distribution` (string, default: `""`) — empty proxies every suite. Echo
+  images pin their own suite and only swap the URL prefix, so the proxy has to pass
+  `dists/<suite>/...` through rather than bind to one distribution.
+- `echo_os_flat` (bool, default: `false`) — Echo uses a standard `dists`/`pool` layout
+
+> **Consuming the mirror:** OS package mirroring is supported for **Echo-based
+> images only**. Those images already ship Echo's apt signing key and source, so
+> there is no keyring or `sources.list` setup. In your Dockerfile, swap the
+> source URL to the new proxy:
+>
+> ```dockerfile
+> FROM echo/someimage:latest
+> ARG APT_MIRROR=https://<nexus-host>/repository/echo-deb
+> RUN echo-apt-mirror $APT_MIRROR
+> RUN apt-get update && apt-get install -y my-package
+> ```
+
 ### Shared
 - `create` (bool, default: `true`)
 - `repository_name` (string, default: `"echo"`) — base name; per-format repos derive from it
@@ -80,6 +108,7 @@ terraform init && terraform apply
 - `usage_instructions` — per-format pull/install instructions (replace `<nexus-host>`)
 - `image_repository_key` — Docker proxy name (or `null`)
 - `library_repository_keys` — list of created library proxy names
+- `os_package_repository_key` — apt proxy name (or `null`)
 
 ## Example — custom repository names
 
