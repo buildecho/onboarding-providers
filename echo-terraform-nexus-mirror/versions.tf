@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.0"
+  # 1.2 for resource lifecycle preconditions (see the apt proxy in main.tf).
+  required_version = ">= 1.2"
 
   required_providers {
     nexus = {

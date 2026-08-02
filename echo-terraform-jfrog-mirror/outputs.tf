@@ -5,6 +5,7 @@ output "usage_instructions" {
     var.echo_library_pypi ? "PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${local.pypi_repository}/simple <package>" : "",
     var.echo_library_npm ? "npm:     npm install --registry https://<your-jfrog-domain>/artifactory/api/npm/${local.npm_repository}/ <package>" : "",
     var.echo_library_maven ? "Maven:   add https://<your-jfrog-domain>/artifactory/${local.maven_repository} as a repository in your settings.xml" : "",
+    var.echo_os_packages ? "OS pkgs: in a Dockerfile built FROM an Echo image, run: echo-apt-mirror https://<your-jfrog-domain>/artifactory/${local.deb_repository}" : "",
   ])) : null
 }
 
@@ -20,4 +21,9 @@ output "library_repository_keys" {
     var.echo_library_npm ? local.npm_repository : "",
     var.echo_library_maven ? local.maven_repository : "",
   ])
+}
+
+output "os_package_repository_key" {
+  description = "Key of the Debian remote repository, if created."
+  value       = var.echo_os_packages ? local.deb_repository : null
 }

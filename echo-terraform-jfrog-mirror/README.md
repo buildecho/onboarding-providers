@@ -1,8 +1,9 @@
 # Echo JFrog Artifactory Mirror - Terraform Module
 
 Configures JFrog Artifactory as a proxy for Echo. One module provisions a Docker
-remote for **images** and/or PyPI / npm / Maven remotes for **libraries**, based
-on the inputs. Each repository is created only when its flag is set.
+remote for **images**, PyPI / npm / Maven remotes for **libraries** and a Debian
+remote for **OS packages**, based on the inputs. Each repository is created only
+when its flag is set.
 
 ## Quickstart
 
@@ -20,6 +21,10 @@ module "echo_jfrog_mirror" {
   echo_library_npm       = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
+
+  # OS packages (URL comes from the Echo platform)
+  echo_os_packages     = true
+  echo_os_packages_url = var.echo_os_packages_url
 }
 
 output "usage_instructions" {
@@ -74,6 +79,25 @@ terraform init && terraform apply
 >
 > then `terraform apply` (or simply apply twice).
 
+### OS packages (Debian)
+- `echo_os_packages` (bool, default: `false`) — provision the Debian remote
+- `echo_os_packages_url` (string, default: `""`) — the Echo Debian repository URL.
+  **Required when `echo_os_packages` is enabled**; there is intentionally no default.
+  Copy it from the Integrations page in the Echo platform.
+- `echo_deb_repository_name` (string, default: `""` → `<remote_repository_name>-deb`)
+
+> **Consuming the mirror:** OS package mirroring is supported for **Echo-based
+> images only**. Those images already ship Echo's apt signing key and source, so
+> there is no keyring or `sources.list` setup. In your Dockerfile, swap the
+> source URL to the new remote:
+>
+> ```dockerfile
+> FROM echo/someimage:latest
+> ARG APT_MIRROR=https://<your-jfrog-domain>/artifactory/echo-deb
+> RUN echo-apt-mirror $APT_MIRROR
+> RUN apt-get update && apt-get install -y my-package
+> ```
+
 ### Shared
 - `create` (bool, default: `true`)
 - `remote_repository_name` (string, default: `"echo"`) — base name; per-format repos derive from it
@@ -87,6 +111,7 @@ terraform init && terraform apply
 - `usage_instructions` — per-format pull/install instructions (replace `<your-jfrog-domain>`)
 - `image_repository_key` — Docker remote key (or `null`)
 - `library_repository_keys` — list of created library remote keys
+- `os_package_repository_key` — Debian remote key (or `null`)
 
 ## Example — custom repository names
 

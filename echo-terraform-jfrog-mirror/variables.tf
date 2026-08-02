@@ -154,6 +154,30 @@ variable "echo_maven_repository_name" {
 }
 
 # ---------------------------------------------------------------------------
+# OS packages (Debian)
+# ---------------------------------------------------------------------------
+
+variable "echo_os_packages" {
+  type        = bool
+  description = "Provision the Debian remote repository that proxies Echo's Debian repository."
+  default     = false
+}
+
+# Deliberately has no default: the upstream URL is supplied by the caller. The
+# Echo platform prefills it in the module invocation it generates.
+variable "echo_os_packages_url" {
+  type        = string
+  description = "URL of the Echo Debian repository. Required when echo_os_packages is enabled; copy it from the Integrations page in the Echo platform."
+  default     = ""
+}
+
+variable "echo_deb_repository_name" {
+  type        = string
+  description = "Optional override for the Debian remote repository key. Defaults to <remote_repository_name>-deb."
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
 # Shared remote-repository configuration
 # ---------------------------------------------------------------------------
 

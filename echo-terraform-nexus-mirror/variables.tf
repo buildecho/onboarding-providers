@@ -121,6 +121,39 @@ variable "echo_maven_repository_name" {
   default     = ""
 }
 
+# --- OS packages (Debian) ---
+variable "echo_os_packages" {
+  type        = bool
+  description = "Provision the apt proxy that mirrors Echo's Debian repository"
+  default     = false
+}
+
+# Deliberately has no default: the upstream URL is supplied by the caller. The
+# Echo platform prefills it in the module invocation it generates.
+variable "echo_os_packages_url" {
+  type        = string
+  description = "URL of the Echo Debian repository. Required when echo_os_packages is enabled; copy it from the Integrations page in the Echo platform."
+  default     = ""
+}
+
+variable "echo_deb_repository_name" {
+  type        = string
+  description = "Override for the apt proxy repository name. Defaults to <repository_name>-deb."
+  default     = ""
+}
+
+variable "echo_os_distribution" {
+  type        = string
+  description = "Distribution to fetch. Empty proxies every distribution in the Echo repository, which is what Echo images expect."
+  default     = ""
+}
+
+variable "echo_os_flat" {
+  type        = bool
+  description = "Whether the upstream uses a flat layout. Echo uses a standard dists/pool layout, so this stays false."
+  default     = false
+}
+
 # Maven proxy policies (datadrivers/nexus requires an explicit maven block)
 variable "maven_version_policy" {
   type        = string

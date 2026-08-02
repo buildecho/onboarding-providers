@@ -15,6 +15,7 @@ locals {
   pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.remote_repository_name}-pypi"
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.remote_repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.remote_repository_name}-maven"
+  deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.remote_repository_name}-deb"
 }
 
 # Docker remote repository for Echo's image registry
@@ -126,4 +127,32 @@ resource "artifactory_remote_maven_repository" "echo_maven" {
   missed_cache_period_seconds    = var.missed_cache_period_seconds
   hard_fail                      = var.hard_fail
   offline                        = var.offline
+}
+
+# Debian remote repository for Echo's OS packages. Consumers are Echo-based
+# images, which already carry Echo's apt signing key and source; they only swap
+# the source URL to point here.
+resource "artifactory_remote_debian_repository" "echo_deb" {
+  count = var.create && var.echo_os_packages ? 1 : 0
+
+  key         = local.deb_repository
+  url         = var.echo_os_packages_url
+  description = var.description
+  notes       = var.notes
+
+  store_artifacts_locally        = var.store_artifacts_locally
+  socket_timeout_millis          = var.socket_timeout_millis
+  retrieval_cache_period_seconds = var.retrieval_cache_period_seconds
+  missed_cache_period_seconds    = var.missed_cache_period_seconds
+  hard_fail                      = var.hard_fail
+  offline                        = var.offline
+
+  # A precondition rather than a variable validation: the rule depends on a
+  # second variable, which validation blocks only support from Terraform 1.9.
+  lifecycle {
+    precondition {
+      condition     = var.echo_os_packages_url != ""
+      error_message = "echo_os_packages_url must be set when echo_os_packages is enabled. Copy the repository URL from the Integrations page in the Echo platform."
+    }
+  }
 }

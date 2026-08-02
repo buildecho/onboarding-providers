@@ -15,6 +15,7 @@ locals {
   pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
+  deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.repository_name}-deb"
 }
 
 # Docker proxy repository for Echo
@@ -230,6 +231,53 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
   }
 
   routing_rule = var.routing_rule
+}
+
+# apt proxy repository for Echo's OS packages.
+#
+# `distribution` is left empty by default so the proxy serves every suite. Echo
+# images already have an apt source pinned to a specific suite (e.g. `trixie
+# main`) and only swap its URL prefix to point here, so the proxy has to pass
+# `dists/<suite>/...` straight through rather than bind to one distribution.
+resource "nexus_repository_apt_proxy" "echo_deb" {
+  count = var.create && var.echo_os_packages ? 1 : 0
+
+  name         = local.deb_repository
+  online       = var.repository_online
+  distribution = var.echo_os_distribution
+  flat         = var.echo_os_flat
+
+  storage {
+    blob_store_name                = var.blob_store_name
+    strict_content_type_validation = var.strict_content_type_validation
+  }
+
+  proxy {
+    remote_url       = var.echo_os_packages_url
+    content_max_age  = var.proxy_content_max_age
+    metadata_max_age = var.proxy_metadata_max_age
+  }
+
+  negative_cache {
+    enabled = var.negative_cache_enabled
+    ttl     = var.negative_cache_ttl
+  }
+
+  http_client {
+    blocked    = var.http_client_blocked
+    auto_block = var.http_client_auto_block
+  }
+
+  routing_rule = var.routing_rule
+
+  # A precondition rather than a variable validation: the rule depends on a
+  # second variable, which validation blocks only support from Terraform 1.9.
+  lifecycle {
+    precondition {
+      condition     = var.echo_os_packages_url != ""
+      error_message = "echo_os_packages_url must be set when echo_os_packages is enabled. Copy the repository URL from the Integrations page in the Echo platform."
+    }
+  }
 }
 
 # Optional: Create a content selector for the repository

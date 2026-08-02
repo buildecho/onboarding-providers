@@ -4,9 +4,10 @@ import * as artifactory from "@pulumi/artifactory";
 /**
  * Configuration options for the JFrog Integration with Echo.
  *
- * One component orchestrates the image (Docker) remote and the library (PyPI /
- * npm / Maven) remotes; each is provisioned only when its flag is set. Images
- * use the image access key, libraries share the library access key.
+ * One component orchestrates the image (Docker) remote, the library (PyPI /
+ * npm / Maven) remotes and the OS packages (Debian) remote; each is provisioned
+ * only when its flag is set. Images use the image access key and libraries
+ * share the library access key.
  */
 export interface JfrogIntegrationInput {
     /**
@@ -103,6 +104,17 @@ export interface JfrogIntegrationInput {
     /** Optional override for the Maven remote key. Defaults to <name>-maven. */
     echoMavenRepositoryName?: string;
 
+    // --- OS packages (Debian) ---
+
+    /** Provision the Debian remote that proxies Echo's Debian repository. */
+    echoOsPackages?: boolean;
+
+    /** URL of the Echo Debian repository. Required when `echoOsPackages` is set. */
+    echoOsPackagesUrl?: string;
+
+    /** Optional override for the Debian remote key. Defaults to <name>-deb. */
+    echoDebRepositoryName?: string;
+
     // --- Shared remote-repository configuration ---
 
     /** @default "Echo remote repository" */
@@ -150,7 +162,8 @@ export interface JfrogIntegrationInput {
  * JFrog Integration Component.
  *
  * Provisions Artifactory remote repositories that proxy Echo — a Docker remote
- * for images and PyPI/npm/Maven remotes for libraries — based on the inputs.
+ * for images, PyPI/npm/Maven remotes for libraries and a Debian remote for OS
+ * packages — based on the inputs.
  *
  * @example
  * ```typescript
@@ -280,6 +293,30 @@ export class JfrogIntegration extends pulumi.ComponentResource {
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(`Maven:   add https://<your-jfrog-domain>/artifactory/${key} as a repository in your settings.xml`);
+        }
+
+        // --- OS packages (Debian) remote ---
+        if (args.echoOsPackages) {
+            if (!args.echoOsPackagesUrl) {
+                throw new Error(
+                    "echoOsPackagesUrl is required when echoOsPackages is enabled. " +
+                    "Copy the repository URL from the Integrations page in the Echo platform.",
+                );
+            }
+            const key = args.echoDebRepositoryName || `${repositoryName}-deb`;
+            new artifactory.RemoteDebianRepository(`${name}-deb`, {
+                key,
+                url: args.echoOsPackagesUrl,
+                description,
+                notes,
+                storeArtifactsLocally,
+                socketTimeoutMillis,
+                retrievalCachePeriodSeconds,
+                missedCachePeriodSeconds,
+                hardFail,
+                offline,
+            }, { parent: this });
+            instructions.push(`OS pkgs: in a Dockerfile built FROM an Echo image, run: echo-apt-mirror https://<your-jfrog-domain>/artifactory/${key}`);
         }
 
         this.usageInstructions = pulumi.output(instructions.join("\n"));
