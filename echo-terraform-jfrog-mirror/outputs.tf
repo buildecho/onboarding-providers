@@ -5,7 +5,7 @@ output "usage_instructions" {
     var.echo_library_pypi ? "PyPI:    pip install --index-url https://<your-jfrog-domain>/artifactory/api/pypi/${local.pypi_repository}/simple <package>" : "",
     var.echo_library_npm ? "npm:     npm install --registry https://<your-jfrog-domain>/artifactory/api/npm/${local.npm_repository}/ <package>" : "",
     var.echo_library_maven ? "Maven:   add https://<your-jfrog-domain>/artifactory/${local.maven_repository} as a repository in your settings.xml" : "",
-    var.echo_library_nuget ? "NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${local.nuget_repository} to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${local.nuget_repository}" : "",
+    var.echo_library_nuget ? "NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${local.nuget_repository}/index.json to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${local.nuget_repository}/index.json" : "",
     var.echo_os_packages ? "OS pkgs: in a Dockerfile built FROM an Echo image, run: echo-apt-mirror https://<your-jfrog-domain>/artifactory/${local.deb_repository}" : "",
   ])) : null
 }

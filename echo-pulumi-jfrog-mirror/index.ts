@@ -321,7 +321,7 @@ export class JfrogIntegration extends pulumi.ComponentResource {
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(
-                `NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key} to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}`,
+                `NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}/index.json to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}/index.json`,
             );
         }
 
