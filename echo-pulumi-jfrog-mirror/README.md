@@ -60,8 +60,9 @@ export const usageInstructions = integration.usageInstructions;
   (default → `<remoteRepositoryName>-{pypi,npm,maven,nuget}`)
 
 > **NuGet routing:** the component explicitly points the v3 feed at Echo and
-> clears JFrog's default nuget.org symbol server. Customer-side package caching
-> remains enabled.
+> clears JFrog's default nuget.org symbol server. It also forces NuGet client
+> authentication so Artifactory challenges clients to send their JFrog credentials.
+> Customer-side package caching remains enabled.
 
 #### PyPI topology
 JFrog now supports a pypi remote whose upstream is a virtual, so PyPI is a

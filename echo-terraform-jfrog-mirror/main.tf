@@ -135,14 +135,15 @@ resource "artifactory_remote_maven_repository" "echo_maven" {
 resource "artifactory_remote_nuget_repository" "echo_nuget" {
   count = var.create && var.echo_library_nuget ? 1 : 0
 
-  key               = local.nuget_repository
-  url               = var.echo_nuget_url
-  v3_feed_url       = var.echo_nuget_v3_feed_url
-  symbol_server_url = ""
-  username          = var.echo_library_key_name
-  password          = var.echo_library_key_value
-  description       = var.description
-  notes             = var.notes
+  key                        = local.nuget_repository
+  url                        = var.echo_nuget_url
+  v3_feed_url                = var.echo_nuget_v3_feed_url
+  symbol_server_url          = ""
+  force_nuget_authentication = true
+  username                   = var.echo_library_key_name
+  password                   = var.echo_library_key_value
+  description                = var.description
+  notes                      = var.notes
 
   # Cache packages locally after they have been vetted by Echo.
   store_artifacts_locally        = var.store_artifacts_locally
