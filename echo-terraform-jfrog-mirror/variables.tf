@@ -6,7 +6,7 @@ variable "create" {
 
 variable "remote_repository_name" {
   type        = string
-  description = "Base name for the remote repositories in Artifactory. Per-format repositories derive from it (e.g. <name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden."
+  description = "Base name for the remote repositories in Artifactory. Per-format repositories derive from it (e.g. <name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless overridden."
   default     = "echo"
 }
 
@@ -85,6 +85,12 @@ variable "echo_library_maven" {
   default     = false
 }
 
+variable "echo_library_nuget" {
+  type        = bool
+  description = "Provision the NuGet remote repository that proxies Echo's NuGet index."
+  default     = false
+}
+
 variable "echo_library_key_name" {
   type = string
   # The Echo library access-key SUBJECT (deterministic per tenant, "et-<id>").
@@ -135,6 +141,18 @@ variable "echo_maven_url" {
   default     = "https://maven.echohq.com"
 }
 
+variable "echo_nuget_url" {
+  type        = string
+  description = "Base URL of the Echo NuGet index."
+  default     = "https://nuget.echohq.com"
+}
+
+variable "echo_nuget_v3_feed_url" {
+  type        = string
+  description = "NuGet v3 service index URL. Must point at Echo or Artifactory will bypass Echo and use nuget.org."
+  default     = "https://nuget.echohq.com/index.json"
+}
+
 variable "echo_pypi_repository_name" {
   type        = string
   description = "Optional override for the PyPI remote repository key. Defaults to <remote_repository_name>-pypi."
@@ -150,6 +168,12 @@ variable "echo_npm_repository_name" {
 variable "echo_maven_repository_name" {
   type        = string
   description = "Optional override for the Maven remote repository key. Defaults to <remote_repository_name>-maven."
+  default     = ""
+}
+
+variable "echo_nuget_repository_name" {
+  type        = string
+  description = "Optional override for the NuGet remote repository key. Defaults to <remote_repository_name>-nuget."
   default     = ""
 }
 

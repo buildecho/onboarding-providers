@@ -5,14 +5,15 @@ import * as artifactory from "@pulumi/artifactory";
  * Configuration options for the JFrog Integration with Echo.
  *
  * One component orchestrates the image (Docker) remote, the library (PyPI /
- * npm / Maven) remotes and the OS packages (Debian) remote; each is provisioned
- * only when its flag is set. Images use the image access key and libraries
- * share the library access key.
+ * npm / Maven / NuGet) remotes and the OS packages (Debian) remote; each is
+ * provisioned only when its flag is set. Images use the image access key and
+ * libraries share the library access key.
  */
 export interface JfrogIntegrationInput {
     /**
      * Base name for the remote repositories. Per-format repositories derive from
-     * it (<name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden.
+     * it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless
+     * overridden.
      * @default "echo"
      */
     remoteRepositoryName?: string;
@@ -57,6 +58,9 @@ export interface JfrogIntegrationInput {
     /** Provision the Maven remote that proxies Echo's Maven index. */
     echoLibraryMaven?: boolean;
 
+    /** Provision the NuGet remote that proxies Echo's NuGet index. */
+    echoLibraryNuget?: boolean;
+
     /**
      * Echo library access key SUBJECT (deterministic per tenant, `et-<id>`),
      * used as the Basic-auth username on the library remotes. JFrog sends creds
@@ -95,6 +99,16 @@ export interface JfrogIntegrationInput {
     /** @default "https://maven.echohq.com" */
     echoMavenUrl?: string;
 
+    /** @default "https://nuget.echohq.com" */
+    echoNugetUrl?: string;
+
+    /**
+     * NuGet v3 service index. Must point at Echo or JFrog will silently use
+     * nuget.org's default service index instead.
+     * @default "https://nuget.echohq.com/index.json"
+     */
+    echoNugetV3FeedUrl?: string;
+
     /** Optional override for the PyPI remote key. Defaults to <name>-pypi. */
     echoPypiRepositoryName?: string;
 
@@ -103,6 +117,9 @@ export interface JfrogIntegrationInput {
 
     /** Optional override for the Maven remote key. Defaults to <name>-maven. */
     echoMavenRepositoryName?: string;
+
+    /** Optional override for the NuGet remote key. Defaults to <name>-nuget. */
+    echoNugetRepositoryName?: string;
 
     // --- OS packages (Debian) ---
 
@@ -162,8 +179,8 @@ export interface JfrogIntegrationInput {
  * JFrog Integration Component.
  *
  * Provisions Artifactory remote repositories that proxy Echo — a Docker remote
- * for images, PyPI/npm/Maven remotes for libraries and a Debian remote for OS
- * packages — based on the inputs.
+ * for images, PyPI/npm/Maven/NuGet remotes for libraries and a Debian remote
+ * for OS packages — based on the inputs.
  *
  * @example
  * ```typescript
@@ -233,9 +250,8 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             instructions.push(`Images:  docker pull <your-jfrog-domain>/${imageRepository}/static:latest`);
         }
 
-        // Library remotes (PyPI / npm / Maven) authenticate to Echo by token
-        // only: the key value is the password and `username` (the key name) is a
-        // no-op, accepted for parity with images but ignored by Echo's index.
+        // Library remotes authenticate with Basic auth: the username is the
+        // Echo library-key subject (`et-<id>`) and the password is its value.
         // These repo types have no `enableTokenAuthentication` toggle (Docker
         // only), so there is nothing further to set.
         const libraryCommon = {
@@ -293,6 +309,22 @@ export class JfrogIntegration extends pulumi.ComponentResource {
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(`Maven:   add https://<your-jfrog-domain>/artifactory/${key} as a repository in your settings.xml`);
+        }
+
+        if (args.echoLibraryNuget) {
+            const key = args.echoNugetRepositoryName || `${repositoryName}-nuget`;
+            new artifactory.RemoteNugetRepository(`${name}-nuget`, {
+                key,
+                url: args.echoNugetUrl || "https://nuget.echohq.com",
+                v3FeedUrl: args.echoNugetV3FeedUrl || "https://nuget.echohq.com/index.json",
+                // JFrog defaults this to symbols.nuget.org, which would bypass
+                // Echo. Echo intentionally exposes no symbol server.
+                symbolServerUrl: "",
+                ...libraryCommon,
+            }, { parent: this });
+            instructions.push(
+                `NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key} to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}`,
+            );
         }
 
         // --- OS packages (Debian) remote ---

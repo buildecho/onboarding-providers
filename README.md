@@ -28,7 +28,7 @@ Infrastructure-as-code templates to integrate container registries with Echo reg
 
 ### JFrog Artifactory
 
-Mirrors images, libraries (PyPI / npm / Maven) and OS packages (Debian).
+Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages (Debian).
 
 | Tool | Status | Directory |
 |------|--------|-----------|
