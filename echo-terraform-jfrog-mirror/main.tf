@@ -15,6 +15,7 @@ locals {
   pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.remote_repository_name}-pypi"
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.remote_repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.remote_repository_name}-maven"
+  nuget_repository = var.echo_nuget_repository_name != "" ? var.echo_nuget_repository_name : "${var.remote_repository_name}-nuget"
   deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.remote_repository_name}-deb"
 }
 
@@ -57,7 +58,7 @@ resource "artifactory_remote_docker_repository" "echo_remote" {
   property_sets = length(var.property_sets) > 0 ? var.property_sets : ["artifactory"]
 }
 
-# Library remotes (PyPI / npm / Maven) authenticate to Echo with Basic auth: the
+# Library remotes (PyPI / npm / Maven / NuGet) authenticate to Echo with Basic auth: the
 # username is the library access-key SUBJECT (echo_library_key_name, "et-<id>")
 # and the password is the key value. JFrog remotes send credentials preemptively,
 # so the correct subject username authenticates. Unlike the Docker remote there
@@ -121,6 +122,29 @@ resource "artifactory_remote_maven_repository" "echo_maven" {
   description = var.description
   notes       = var.notes
 
+  store_artifacts_locally        = var.store_artifacts_locally
+  socket_timeout_millis          = var.socket_timeout_millis
+  retrieval_cache_period_seconds = var.retrieval_cache_period_seconds
+  missed_cache_period_seconds    = var.missed_cache_period_seconds
+  hard_fail                      = var.hard_fail
+  offline                        = var.offline
+}
+
+# NuGet remote repository backed by Echo. The v3 feed URL is set explicitly,
+# and Artifactory's default NuGet symbol server is disabled.
+resource "artifactory_remote_nuget_repository" "echo_nuget" {
+  count = var.create && var.echo_library_nuget ? 1 : 0
+
+  key               = local.nuget_repository
+  url               = var.echo_nuget_url
+  v3_feed_url       = var.echo_nuget_v3_feed_url
+  symbol_server_url = ""
+  username          = var.echo_library_key_name
+  password          = var.echo_library_key_value
+  description       = var.description
+  notes             = var.notes
+
+  # Cache packages locally after they have been vetted by Echo.
   store_artifacts_locally        = var.store_artifacts_locally
   socket_timeout_millis          = var.socket_timeout_millis
   retrieval_cache_period_seconds = var.retrieval_cache_period_seconds

@@ -1,7 +1,7 @@
 # Echo JFrog Artifactory Mirror - Terraform Module
 
 Configures JFrog Artifactory as a proxy for Echo. One module provisions a Docker
-remote for **images**, PyPI / npm / Maven remotes for **libraries** and a Debian
+remote for **images**, PyPI / npm / Maven / NuGet remotes for **libraries** and a Debian
 remote for **OS packages**, based on the inputs. Each repository is created only
 when its flag is set.
 
@@ -19,6 +19,7 @@ module "echo_jfrog_mirror" {
   # Libraries (one shared library key)
   echo_library_pypi      = true
   echo_library_npm       = true
+  echo_library_nuget     = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
 
@@ -47,7 +48,8 @@ terraform init && terraform apply
   compatibility; when set they provision the Docker remote using the image fields.
 
 ### Libraries (package registries — one shared library key)
-- `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
+- `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` /
+  `echo_library_nuget` (bool, default: `false`)
 - `echo_library_key_value` (string, sensitive) — library access key (the password).
 - `echo_library_key_name` (string, sensitive) — the Echo library access-key **subject**
   (`et-<id>`) used as the Basic auth username. Required: JFrog remotes send credentials
@@ -58,8 +60,15 @@ terraform init && terraform apply
 - `echo_pypi_url` — **deprecated**, replaced by `echo_pypi_base_url` + `echo_pypi_repo`
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
-- `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
-  (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven}`)
+- `echo_nuget_url` (default: `"https://nuget.echohq.com"`)
+- `echo_nuget_v3_feed_url` (default: `"https://nuget.echohq.com/index.json"`)
+- `echo_pypi_repository_name` / `echo_npm_repository_name` /
+  `echo_maven_repository_name` / `echo_nuget_repository_name`
+  (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven,nuget}`)
+
+> **NuGet routing:** the module explicitly sets the NuGet v3 feed URL to Echo and
+> clears JFrog's default nuget.org symbol-server URL. Omitting either setting can
+> route NuGet requests around Echo. Customer-side package caching remains enabled.
 
 > **PyPI topology:** JFrog now supports a pypi remote whose upstream is a virtual,
 > so enabling `echo_library_pypi` creates a **single smart remote** (`<pypi>`) like

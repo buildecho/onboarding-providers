@@ -1,9 +1,9 @@
 # Echo JFrog Remote Repository - Pulumi Component
 
 Pulumi component that configures JFrog Artifactory as a proxy for Echo. One
-component provisions a Docker remote for **images**, PyPI / npm / Maven remotes
-for **libraries** and a Debian remote for **OS packages**, based on the inputs.
-Each repository is created only when its flag is set.
+component provisions a Docker remote for **images**, PyPI / npm / Maven / NuGet
+remotes for **libraries**, and a Debian remote for **OS packages**, based on the
+inputs. Each repository is created only when its flag is set.
 
 ## Install
 ```bash
@@ -23,6 +23,7 @@ const integration = new JfrogIntegration("echo-integration", {
   // Libraries (one shared library key)
   echoLibraryPypi: true,
   echoLibraryNpm: true,
+  echoLibraryNuget: true,
   echoLibraryKeyName: config.requireSecret("echoLibraryKeyName"),
   echoLibraryKeyValue: config.requireSecret("echoLibraryKeyValue"),
 
@@ -44,15 +45,23 @@ export const usageInstructions = integration.usageInstructions;
 - `echoAccessKeyName` / `echoAccessKeyValue` — **deprecated**, backwards-compatible image fields
 
 ### Libraries (one shared library key)
-- `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` (boolean, default `false`)
+- `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` /
+  `echoLibraryNuget` (boolean, default `false`)
 - `echoLibraryKeyValue` — library access key value (the Basic-auth password).
 - `echoLibraryKeyName` — the Echo library access key **subject** (deterministic per
   tenant, `et-<id>`), used as the Basic-auth username. JFrog sends credentials
   preemptively, so Basic with the correct subject authenticates.
 - `echoNpmUrl` (default `https://npm.echohq.com`) / `echoMavenUrl` (default
   `https://maven.echohq.com`)
-- `echoPypiRepositoryName` / `echoNpmRepositoryName` / `echoMavenRepositoryName`
-  (default → `<remoteRepositoryName>-{pypi,npm,maven}`)
+- `echoNugetUrl` (default `https://nuget.echohq.com`)
+- `echoNugetV3FeedUrl` (default `https://nuget.echohq.com/index.json`)
+- `echoPypiRepositoryName` / `echoNpmRepositoryName` /
+  `echoMavenRepositoryName` / `echoNugetRepositoryName`
+  (default → `<remoteRepositoryName>-{pypi,npm,maven,nuget}`)
+
+> **NuGet routing:** the component explicitly points the v3 feed at Echo and
+> clears JFrog's default nuget.org symbol server. Customer-side package caching
+> remains enabled.
 
 #### PyPI topology
 JFrog now supports a pypi remote whose upstream is a virtual, so PyPI is a
@@ -76,7 +85,7 @@ The remote sets both `url` (`<base>/<repo>`) and `pypiRegistryUrl`
 > `pulumi destroy --target '**-pypi'` for the virtual) so the new remote's key is
 > free, or run the update twice.
 
-> The pypi/npm/maven remotes do not expose `enableTokenAuthentication` in the provider
+> The pypi/npm/maven/nuget remotes do not expose `enableTokenAuthentication` in the provider
 > (docker-only; jfrog provider issue #1389). If Echo ever requires Bearer, PATCH
 > `{"enableTokenAuthentication":true}` via REST after create.
 
