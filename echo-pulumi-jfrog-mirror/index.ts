@@ -318,8 +318,6 @@ export class JfrogIntegration extends pulumi.ComponentResource {
                 // Disable Artifactory's default NuGet symbol server because
                 // Echo does not expose a symbol server endpoint.
                 symbolServerUrl: "",
-                // Challenge NuGet clients so they send their JFrog credentials.
-                forceNugetAuthentication: true,
                 ...libraryCommon,
             }, { parent: this });
             instructions.push(

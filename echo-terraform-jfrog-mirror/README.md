@@ -67,10 +67,8 @@ terraform init && terraform apply
   (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven,nuget}`)
 
 > **NuGet routing:** the module explicitly sets the NuGet v3 feed URL to Echo and
-> clears JFrog's default nuget.org symbol-server URL. It also forces NuGet client
-> authentication so Artifactory challenges clients to send their JFrog credentials.
-> Omitting the feed or symbol-server setting can route NuGet requests around Echo.
-> Customer-side package caching remains enabled.
+> clears JFrog's default nuget.org symbol-server URL. Omitting either setting can
+> route NuGet requests around Echo. Customer-side package caching remains enabled.
 
 > **PyPI topology:** JFrog now supports a pypi remote whose upstream is a virtual,
 > so enabling `echo_library_pypi` creates a **single smart remote** (`<pypi>`) like

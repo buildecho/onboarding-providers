@@ -37,11 +37,6 @@ run "plans_echo_nuget_remote" {
   }
 
   assert {
-    condition     = artifactory_remote_nuget_repository.echo_nuget[0].force_nuget_authentication
-    error_message = "The NuGet remote must challenge clients for their JFrog credentials."
-  }
-
-  assert {
     condition     = artifactory_remote_nuget_repository.echo_nuget[0].username == "et-test"
     error_message = "The NuGet remote must use the Echo library-key subject."
   }
