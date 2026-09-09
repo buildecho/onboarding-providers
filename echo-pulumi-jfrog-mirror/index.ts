@@ -103,8 +103,7 @@ export interface JfrogIntegrationInput {
     echoNugetUrl?: string;
 
     /**
-     * NuGet v3 service index. Must point at Echo or JFrog will silently use
-     * nuget.org's default service index instead.
+     * NuGet v3 service index URL used by the remote repository.
      * @default "https://nuget.echohq.com/index.json"
      */
     echoNugetV3FeedUrl?: string;
@@ -250,10 +249,9 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             instructions.push(`Images:  docker pull <your-jfrog-domain>/${imageRepository}/static:latest`);
         }
 
-        // Library remotes authenticate with Basic auth: the username is the
-        // Echo library-key subject (`et-<id>`) and the password is its value.
-        // These repo types have no `enableTokenAuthentication` toggle (Docker
-        // only), so there is nothing further to set.
+        // Library remotes use the Echo library-key subject (`et-<id>`) as the
+        // Basic-auth username and the key value as the password. The provider
+        // exposes `enableTokenAuthentication` only for Docker repositories.
         const libraryCommon = {
             username: args.echoLibraryKeyName ?? "",
             password: args.echoLibraryKeyValue ?? "",
@@ -317,8 +315,8 @@ export class JfrogIntegration extends pulumi.ComponentResource {
                 key,
                 url: args.echoNugetUrl || "https://nuget.echohq.com",
                 v3FeedUrl: args.echoNugetV3FeedUrl || "https://nuget.echohq.com/index.json",
-                // JFrog defaults this to symbols.nuget.org, which would bypass
-                // Echo. Echo intentionally exposes no symbol server.
+                // Disable Artifactory's default NuGet symbol server because
+                // Echo does not expose a symbol server endpoint.
                 symbolServerUrl: "",
                 ...libraryCommon,
             }, { parent: this });

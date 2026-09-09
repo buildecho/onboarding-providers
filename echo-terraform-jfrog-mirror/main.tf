@@ -130,10 +130,8 @@ resource "artifactory_remote_maven_repository" "echo_maven" {
   offline                        = var.offline
 }
 
-# NuGet remote repository for Echo's NuGet index. Both URL fields are required:
-# Artifactory otherwise leaves v3_feed_url pointed at nuget.org and silently
-# bypasses Echo. Echo does not expose a symbol server, so the nuget.org default
-# must also be cleared.
+# NuGet remote repository backed by Echo. The v3 feed URL is set explicitly,
+# and Artifactory's default NuGet symbol server is disabled.
 resource "artifactory_remote_nuget_repository" "echo_nuget" {
   count = var.create && var.echo_library_nuget ? 1 : 0
 
@@ -146,8 +144,7 @@ resource "artifactory_remote_nuget_repository" "echo_nuget" {
   description       = var.description
   notes             = var.notes
 
-  # Customer mirrors intentionally cache packages. Echo performs vetting
-  # upstream; disabling this cache would only make customer pulls slower.
+  # Cache packages locally after they have been vetted by Echo.
   store_artifacts_locally        = var.store_artifacts_locally
   socket_timeout_millis          = var.socket_timeout_millis
   retrieval_cache_period_seconds = var.retrieval_cache_period_seconds
