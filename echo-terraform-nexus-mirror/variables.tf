@@ -71,6 +71,12 @@ variable "echo_library_maven" {
   default     = false
 }
 
+variable "echo_library_nuget" {
+  type        = bool
+  description = "Provision the NuGet V3 proxy that mirrors Echo's NuGet service index"
+  default     = false
+}
+
 variable "echo_library_key_name" {
   type        = string
   description = "Basic auth username for the library proxies: the Echo library access-key subject (et-<id>). Get this from the Echo platform."
@@ -103,6 +109,12 @@ variable "echo_maven_url" {
   default     = "https://maven.echohq.com"
 }
 
+variable "echo_nuget_url" {
+  type        = string
+  description = "URL of the Echo NuGet V3 service index"
+  default     = "https://nuget.echohq.com/index.json"
+}
+
 variable "echo_pypi_repository_name" {
   type        = string
   description = "Override for the PyPI proxy repository name. Defaults to <repository_name>-pypi."
@@ -118,6 +130,12 @@ variable "echo_npm_repository_name" {
 variable "echo_maven_repository_name" {
   type        = string
   description = "Override for the Maven proxy repository name. Defaults to <repository_name>-maven."
+  default     = ""
+}
+
+variable "echo_nuget_repository_name" {
+  type        = string
+  description = "Override for the NuGet proxy repository name. Defaults to <repository_name>-nuget."
   default     = ""
 }
 
@@ -177,10 +195,16 @@ variable "maven_layout_policy" {
   }
 }
 
+variable "nuget_query_cache_item_max_age" {
+  type        = number
+  description = "How long Nexus caches NuGet query results, in seconds"
+  default     = 3600
+}
+
 # Repository Configuration
 variable "repository_name" {
   type        = string
-  description = "Base name for the proxy repositories. Per-format repos derive from it (<name>, <name>-pypi, <name>-npm, <name>-maven) unless overridden."
+  description = "Base name for the proxy repositories. Per-format repos derive from it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless overridden."
   default     = "echo"
 
   validation {

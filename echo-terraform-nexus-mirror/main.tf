@@ -15,6 +15,7 @@ locals {
   pypi_repository  = var.echo_pypi_repository_name != "" ? var.echo_pypi_repository_name : "${var.repository_name}-pypi"
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
+  nuget_repository = var.echo_nuget_repository_name != "" ? var.echo_nuget_repository_name : "${var.repository_name}-nuget"
   deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.repository_name}-deb"
 }
 
@@ -89,7 +90,7 @@ resource "nexus_repository_docker_proxy" "echo_proxy" {
 }
 
 
-# Library proxies (PyPI / npm / Maven).
+# Library proxies (PyPI / npm / Maven / NuGet).
 #
 # AUTH: plain Basic (`type = "username"`) is correct and sufficient. Echo's
 # library hosts answer unauthenticated requests with
@@ -223,6 +224,45 @@ resource "nexus_repository_maven_proxy" "echo_maven" {
     # so challenge-response Basic is sufficient - see the AUTH note above. The
     # provider exposes a preemptive variant for maven; we leave it unset because
     # it is no longer needed.
+    authentication {
+      type     = "username"
+      username = var.echo_library_key_name
+      password = var.echo_library_key_value
+    }
+  }
+
+  routing_rule = var.routing_rule
+}
+
+# NuGet V3 proxy repository for Echo's service index.
+resource "nexus_repository_nuget_proxy" "echo_nuget" {
+  count = var.create && var.echo_library_nuget ? 1 : 0
+
+  name                     = local.nuget_repository
+  online                   = var.repository_online
+  nuget_version            = "V3"
+  query_cache_item_max_age = var.nuget_query_cache_item_max_age
+
+  storage {
+    blob_store_name                = var.blob_store_name
+    strict_content_type_validation = var.strict_content_type_validation
+  }
+
+  proxy {
+    remote_url       = var.echo_nuget_url
+    content_max_age  = var.proxy_content_max_age
+    metadata_max_age = var.proxy_metadata_max_age
+  }
+
+  negative_cache {
+    enabled = var.negative_cache_enabled
+    ttl     = var.negative_cache_ttl
+  }
+
+  http_client {
+    blocked    = var.http_client_blocked
+    auto_block = var.http_client_auto_block
+
     authentication {
       type     = "username"
       username = var.echo_library_key_name
