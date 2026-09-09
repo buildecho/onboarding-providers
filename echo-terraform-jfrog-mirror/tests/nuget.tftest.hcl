@@ -50,4 +50,9 @@ run "plans_echo_nuget_remote" {
     condition     = contains(output.library_repository_keys, "echo-test-nuget")
     error_message = "The NuGet repository key must be included in module outputs."
   }
+
+  assert {
+    condition     = strcontains(output.usage_instructions, "/api/nuget/v3/echo-test-nuget/index.json")
+    error_message = "The NuGet usage instructions must point at Artifactory's v3 service index."
+  }
 }
