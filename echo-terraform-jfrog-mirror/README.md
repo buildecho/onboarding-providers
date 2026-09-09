@@ -70,6 +70,12 @@ terraform init && terraform apply
 > clears JFrog's default nuget.org symbol-server URL. Omitting either setting can
 > route NuGet requests around Echo. Customer-side package caching remains enabled.
 
+> **NuGet and anonymous access:** NuGet clients only send credentials after a
+> `401` challenge. If your Artifactory has *Allow Anonymous Access* enabled,
+> unauthenticated requests get `404` instead, so installs through the remote fail.
+> In that case enable **Force Authentication** on the NuGet remote (Advanced tab).
+> Not needed when anonymous access is disabled (JFrog's default).
+
 > **PyPI topology:** JFrog now supports a pypi remote whose upstream is a virtual,
 > so enabling `echo_library_pypi` creates a **single smart remote** (`<pypi>`) like
 > npm and Maven, pointing at Echo's virtual `pypi`
