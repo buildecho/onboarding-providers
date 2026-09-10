@@ -35,9 +35,10 @@ Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages (Debian).
 | **Terraform** | ✅ Ready | [`/echo-terraform-jfrog-mirror`](./echo-terraform-jfrog-mirror) |
 | **Pulumi** | ✅ Ready | [`/echo-pulumi-jfrog-mirror`](./echo-pulumi-jfrog-mirror) |
 
-### Sonatype Nexus Docker Proxy
+### Sonatype Nexus
 
-Mirrors images, libraries (npm / Maven) and OS packages (Debian).
+Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages
+(Debian).
 
 | Tool | Status | Directory |
 |------|--------|-----------|

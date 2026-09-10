@@ -1,9 +1,9 @@
 # Echo Nexus Mirror - Terraform Module
 
 Configures Sonatype Nexus as a proxy for Echo. One module provisions a Docker
-proxy for **images**, PyPI / npm / Maven proxies for **libraries** and an apt
-proxy for **OS packages**, based on the inputs. Each repository is created only
-when its flag is set.
+proxy for **images**, PyPI / npm / Maven / NuGet proxies for **libraries** and
+an apt proxy for **OS packages**, based on the inputs. Each repository is
+created only when its flag is set.
 
 ## Quickstart
 
@@ -20,6 +20,7 @@ module "echo_nexus_mirror" {
   # Libraries (one shared library key)
   echo_library_pypi      = true
   echo_library_npm       = true
+  echo_library_nuget     = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
 
@@ -60,17 +61,25 @@ terraform init && terraform apply
 > challenged never sent credentials, and preemptive auth (which the
 > `datadrivers/nexus` provider cannot configure for pypi/npm) was the only way
 > through. Echo now issues the challenge at the edge, so the provider's plain
-> `type = "username"` auth works for all three formats.
+> `type = "username"` auth works for all four formats.
 
-- `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` (bool, default: `false`)
+- `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` /
+  `echo_library_nuget` (bool, default: `false`)
 - `echo_library_key_name` (string, sensitive) — Basic auth username, the Echo library access-key subject (`et-<id>`)
 - `echo_library_key_value` (string, sensitive) — Basic auth password, the library access token
 - `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
-- `echo_pypi_repository_name` / `echo_npm_repository_name` / `echo_maven_repository_name`
-  (string, default: `""` → `<repository_name>-{pypi,npm,maven}`)
+- `echo_nuget_url` (default: `"https://nuget.echohq.com/index.json"`)
+- `echo_pypi_repository_name` / `echo_npm_repository_name` /
+  `echo_maven_repository_name` / `echo_nuget_repository_name`
+  (string, default: `""` → `<repository_name>-{pypi,npm,maven,nuget}`)
 - `maven_version_policy` (string, default: `"MIXED"`) / `maven_layout_policy` (string, default: `"PERMISSIVE"`)
+- `nuget_query_cache_item_max_age` (number, default: `3600` seconds)
+
+> **NuGet routing:** the proxy uses Echo's NuGet V3 service index. Nexus treats
+> symbols as a separate optional upstream, which this module leaves
+> unconfigured because Echo does not expose a symbol server.
 
 ### OS packages (Debian)
 - `echo_os_packages` (bool, default: `false`) — provision the apt proxy
