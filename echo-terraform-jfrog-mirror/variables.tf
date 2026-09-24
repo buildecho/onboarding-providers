@@ -6,7 +6,7 @@ variable "create" {
 
 variable "remote_repository_name" {
   type        = string
-  description = "Base name for the remote repositories in Artifactory. Per-format repositories derive from it (e.g. <name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless overridden."
+  description = "Base name for the repositories in Artifactory. Per-format repositories derive from it (e.g. <name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget; Go uses <name>-go-remote plus client-facing <name>-go) unless overridden."
   default     = "echo"
 }
 
@@ -91,6 +91,12 @@ variable "echo_library_nuget" {
   default     = false
 }
 
+variable "echo_library_golang" {
+  type        = bool
+  description = "Provision the Go remote and virtual repositories that proxy Echo's module proxy. Clients resolve through the virtual."
+  default     = false
+}
+
 variable "echo_library_key_name" {
   type = string
   # The Echo library access-key SUBJECT (deterministic per tenant, "et-<id>").
@@ -153,6 +159,12 @@ variable "echo_nuget_v3_feed_url" {
   default     = "https://nuget.echohq.com/index.json"
 }
 
+variable "echo_golang_url" {
+  type        = string
+  description = "URL of Echo's Go module proxy."
+  default     = "https://golang.echohq.com"
+}
+
 variable "echo_pypi_repository_name" {
   type        = string
   description = "Optional override for the PyPI remote repository key. Defaults to <remote_repository_name>-pypi."
@@ -174,6 +186,18 @@ variable "echo_maven_repository_name" {
 variable "echo_nuget_repository_name" {
   type        = string
   description = "Optional override for the NuGet remote repository key. Defaults to <remote_repository_name>-nuget."
+  default     = ""
+}
+
+variable "echo_go_repository_name" {
+  type        = string
+  description = "Optional override for the Go remote repository key. Defaults to <remote_repository_name>-go-remote."
+  default     = ""
+}
+
+variable "echo_go_virtual_repository_name" {
+  type        = string
+  description = "Optional override for the Go virtual repository key clients resolve through. Defaults to <remote_repository_name>-go."
   default     = ""
 }
 

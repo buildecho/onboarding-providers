@@ -16,7 +16,10 @@ locals {
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.remote_repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.remote_repository_name}-maven"
   nuget_repository = var.echo_nuget_repository_name != "" ? var.echo_nuget_repository_name : "${var.remote_repository_name}-nuget"
-  deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.remote_repository_name}-deb"
+  # Clients resolve through the virtual. The remote key must differ from it.
+  go_repository         = var.echo_go_repository_name != "" ? var.echo_go_repository_name : "${var.remote_repository_name}-go-remote"
+  go_virtual_repository = var.echo_go_virtual_repository_name != "" ? var.echo_go_virtual_repository_name : "${var.remote_repository_name}-go"
+  deb_repository        = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.remote_repository_name}-deb"
 }
 
 # Docker remote repository for Echo's image registry
@@ -58,7 +61,7 @@ resource "artifactory_remote_docker_repository" "echo_remote" {
   property_sets = length(var.property_sets) > 0 ? var.property_sets : ["artifactory"]
 }
 
-# Library remotes (PyPI / npm / Maven / NuGet) authenticate to Echo with Basic auth: the
+# Library remotes (PyPI / npm / Maven / NuGet / Go) authenticate to Echo with Basic auth: the
 # username is the library access-key SUBJECT (echo_library_key_name, "et-<id>")
 # and the password is the key value. JFrog remotes send credentials preemptively,
 # so the correct subject username authenticates. Unlike the Docker remote there
@@ -151,6 +154,42 @@ resource "artifactory_remote_nuget_repository" "echo_nuget" {
   missed_cache_period_seconds    = var.missed_cache_period_seconds
   hard_fail                      = var.hard_fail
   offline                        = var.offline
+}
+
+# Go remote plus the virtual clients actually resolve through. Artifactory does
+# not serve a Go remote directly. Git provider Artifactory means "this URL is a
+# module proxy"; a VCS value would clone from the URL. External dependencies
+# stay off so a module Echo does not serve returns 404 instead of being cloned
+# from its git host, which would skip Echo. The virtual also refuses remote
+# retrieval requests made on behalf of another Artifactory instance.
+resource "artifactory_remote_go_repository" "echo_go" {
+  count = var.create && var.echo_library_golang ? 1 : 0
+
+  key              = local.go_repository
+  url              = var.echo_golang_url
+  vcs_git_provider = "ARTIFACTORY"
+  username         = var.echo_library_key_name
+  password         = var.echo_library_key_value
+  description      = var.description
+  notes            = var.notes
+
+  store_artifacts_locally        = var.store_artifacts_locally
+  socket_timeout_millis          = var.socket_timeout_millis
+  retrieval_cache_period_seconds = var.retrieval_cache_period_seconds
+  missed_cache_period_seconds    = var.missed_cache_period_seconds
+  hard_fail                      = var.hard_fail
+  offline                        = var.offline
+}
+
+resource "artifactory_virtual_go_repository" "echo_go" {
+  count = var.create && var.echo_library_golang ? 1 : 0
+
+  key                                                = local.go_virtual_repository
+  artifactory_requests_can_retrieve_remote_artifacts = false
+  external_dependencies_enabled                      = false
+  repositories                                       = [artifactory_remote_go_repository.echo_go[0].key]
+  description                                        = var.description
+  notes                                              = var.notes
 }
 
 # Debian remote repository for Echo's OS packages. Consumers are Echo-based
