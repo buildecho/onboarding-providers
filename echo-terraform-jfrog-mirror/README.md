@@ -1,7 +1,7 @@
 # Echo JFrog Artifactory Mirror - Terraform Module
 
 Configures JFrog Artifactory as a proxy for Echo. One module provisions a Docker
-remote for **images**, PyPI / npm / Maven / NuGet remotes for **libraries** and a Debian
+remote for **images**, PyPI / npm / Maven / NuGet / Go repositories for **libraries** and a Debian
 remote for **OS packages**, based on the inputs. Each repository is created only
 when its flag is set.
 
@@ -20,6 +20,7 @@ module "echo_jfrog_mirror" {
   echo_library_pypi      = true
   echo_library_npm       = true
   echo_library_nuget     = true
+  echo_library_golang    = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
 
@@ -49,7 +50,7 @@ terraform init && terraform apply
 
 ### Libraries (package registries — one shared library key)
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` /
-  `echo_library_nuget` (bool, default: `false`)
+  `echo_library_nuget` / `echo_library_golang` (bool, default: `false`)
 - `echo_library_key_value` (string, sensitive) — library access key (the password).
 - `echo_library_key_name` (string, sensitive) — the Echo library access-key **subject**
   (`et-<id>`) used as the Basic auth username. Required: JFrog remotes send credentials
@@ -62,13 +63,25 @@ terraform init && terraform apply
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_nuget_url` (default: `"https://nuget.echohq.com"`)
 - `echo_nuget_v3_feed_url` (default: `"https://nuget.echohq.com/index.json"`)
+- `echo_golang_url` (default: `"https://golang.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` /
   `echo_maven_repository_name` / `echo_nuget_repository_name`
   (string, default: `""` → `<remote_repository_name>-{pypi,npm,maven,nuget}`)
+- `echo_go_repository_name` (default: `""` → `<remote_repository_name>-go-remote`) /
+  `echo_go_virtual_repository_name` (default: `""` → `<remote_repository_name>-go`)
 
 > **NuGet routing:** the module explicitly sets the NuGet v3 feed URL to Echo and
 > clears JFrog's default nuget.org symbol-server URL. Omitting either setting can
 > route NuGet requests around Echo. Customer-side package caching remains enabled.
+
+> **Go:** enabling `echo_library_golang` creates a remote (`<name>-go-remote`,
+> Git provider `ARTIFACTORY`, URL `https://golang.echohq.com`) and a virtual
+> (`<name>-go`) with external dependencies disabled. Clients set `GOPROXY` to
+> the virtual only. Artifactory does not resolve a Go remote
+> directly, and external dependencies left on clone from git and skip Echo.
+> The module does not disable Go's checksum database. If Artifactory requires
+> client authentication, add the customer's Artifactory credentials for the
+> Artifactory hostname to `~/.netrc`.
 
 > **NuGet and anonymous access:** NuGet clients only send credentials after a
 > `401` challenge. If your Artifactory has *Allow Anonymous Access* enabled,
@@ -125,7 +138,8 @@ terraform init && terraform apply
 ## Outputs
 - `usage_instructions` — per-format pull/install instructions (replace `<your-jfrog-domain>`)
 - `image_repository_key` — Docker remote key (or `null`)
-- `library_repository_keys` — list of created library remote keys
+- `library_repository_keys` — list of client-facing library repository keys
+  (the Go virtual, not its internal remote)
 - `os_package_repository_key` — Debian remote key (or `null`)
 
 ## Example — custom repository names

@@ -77,6 +77,12 @@ variable "echo_library_nuget" {
   default     = false
 }
 
+variable "echo_library_golang" {
+  type        = bool
+  description = "Provision the Go proxy that mirrors Echo's module proxy"
+  default     = false
+}
+
 variable "echo_library_key_name" {
   type        = string
   description = "Basic auth username for the library proxies: the Echo library access-key subject (et-<id>). Get this from the Echo platform."
@@ -115,6 +121,12 @@ variable "echo_nuget_url" {
   default     = "https://nuget.echohq.com/index.json"
 }
 
+variable "echo_golang_url" {
+  type        = string
+  description = "URL of the Echo Go module proxy"
+  default     = "https://golang.echohq.com"
+}
+
 variable "echo_pypi_repository_name" {
   type        = string
   description = "Override for the PyPI proxy repository name. Defaults to <repository_name>-pypi."
@@ -136,6 +148,12 @@ variable "echo_maven_repository_name" {
 variable "echo_nuget_repository_name" {
   type        = string
   description = "Override for the NuGet proxy repository name. Defaults to <repository_name>-nuget."
+  default     = ""
+}
+
+variable "echo_go_repository_name" {
+  type        = string
+  description = "Override for the Go proxy repository name. Defaults to <repository_name>-go."
   default     = ""
 }
 
@@ -204,7 +222,7 @@ variable "nuget_query_cache_item_max_age" {
 # Repository Configuration
 variable "repository_name" {
   type        = string
-  description = "Base name for the proxy repositories. Per-format repos derive from it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless overridden."
+  description = "Base name for the proxy repositories. Per-format repos derive from it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget, <name>-go) unless overridden."
   default     = "echo"
 
   validation {

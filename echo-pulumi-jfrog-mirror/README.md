@@ -1,9 +1,10 @@
 # Echo JFrog Remote Repository - Pulumi Component
 
 Pulumi component that configures JFrog Artifactory as a proxy for Echo. One
-component provisions a Docker remote for **images**, PyPI / npm / Maven / NuGet
-remotes for **libraries**, and a Debian remote for **OS packages**, based on the
-inputs. Each repository is created only when its flag is set.
+component provisions a Docker remote for **images**, PyPI / npm / Maven / NuGet / Go
+remotes for **libraries** (Go also gets a virtual repository that clients
+resolve through), and a Debian remote for **OS packages**, based on the inputs.
+Each repository is created only when its flag is set.
 
 ## Install
 ```bash
@@ -24,6 +25,7 @@ const integration = new JfrogIntegration("echo-integration", {
   echoLibraryPypi: true,
   echoLibraryNpm: true,
   echoLibraryNuget: true,
+  echoLibraryGolang: true,
   echoLibraryKeyName: config.requireSecret("echoLibraryKeyName"),
   echoLibraryKeyValue: config.requireSecret("echoLibraryKeyValue"),
 
@@ -46,7 +48,7 @@ export const usageInstructions = integration.usageInstructions;
 
 ### Libraries (one shared library key)
 - `echoLibraryPypi` / `echoLibraryNpm` / `echoLibraryMaven` /
-  `echoLibraryNuget` (boolean, default `false`)
+  `echoLibraryNuget` / `echoLibraryGolang` (boolean, default `false`)
 - `echoLibraryKeyValue` — library access key value (the Basic-auth password).
 - `echoLibraryKeyName` — the Echo library access key **subject** (deterministic per
   tenant, `et-<id>`), used as the Basic-auth username. JFrog sends credentials
@@ -55,13 +57,25 @@ export const usageInstructions = integration.usageInstructions;
   `https://maven.echohq.com`)
 - `echoNugetUrl` (default `https://nuget.echohq.com`)
 - `echoNugetV3FeedUrl` (default `https://nuget.echohq.com/index.json`)
+- `echoGolangUrl` (default `https://golang.echohq.com`)
 - `echoPypiRepositoryName` / `echoNpmRepositoryName` /
   `echoMavenRepositoryName` / `echoNugetRepositoryName`
   (default → `<remoteRepositoryName>-{pypi,npm,maven,nuget}`)
+- `echoGoRepositoryName` (default → `<remoteRepositoryName>-go-remote`) /
+  `echoGoVirtualRepositoryName` (default → `<remoteRepositoryName>-go`)
 
 > **NuGet routing:** the component explicitly points the v3 feed at Echo and
 > clears JFrog's default nuget.org symbol server. Customer-side package caching
 > remains enabled.
+
+> **Go:** `echoLibraryGolang` creates a remote (`<name>-go-remote`, Git
+> provider `ARTIFACTORY`, URL `https://golang.echohq.com`) and a virtual
+> (`<name>-go`) with external dependencies disabled. Clients set `GOPROXY` to
+> the virtual only. Artifactory does not resolve a Go remote directly, and
+> external dependencies left on clone from git and skip Echo. The component
+> does not disable Go's checksum database. If Artifactory requires client
+> authentication, add the customer's Artifactory credentials for the
+> Artifactory hostname to `~/.netrc`.
 
 > **NuGet and anonymous access:** NuGet clients only send credentials after a
 > `401` challenge. If your Artifactory has *Allow Anonymous Access* enabled,

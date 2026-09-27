@@ -5,14 +5,16 @@ import * as artifactory from "@pulumi/artifactory";
  * Configuration options for the JFrog Integration with Echo.
  *
  * One component orchestrates the image (Docker) remote, the library (PyPI /
- * npm / Maven / NuGet) remotes and the OS packages (Debian) remote; each is
+ * npm / Maven / NuGet / Go) remotes and the OS packages (Debian) remote; each is
  * provisioned only when its flag is set. Images use the image access key and
- * libraries share the library access key.
+ * libraries share the library access key. Go also creates the virtual repository
+ * clients resolve through (`GoRepository`).
  */
 export interface JfrogIntegrationInput {
     /**
      * Base name for the remote repositories. Per-format repositories derive from
-     * it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget) unless
+     * it (<name>, <name>-pypi, <name>-npm, <name>-maven, <name>-nuget, <name>-go-remote,
+     * <name>-go) unless
      * overridden.
      * @default "echo"
      */
@@ -62,6 +64,12 @@ export interface JfrogIntegrationInput {
     echoLibraryNuget?: boolean;
 
     /**
+     * Provision the Go remote that proxies Echo's module proxy, plus the virtual
+     * repository clients resolve through. External dependencies stay off.
+     */
+    echoLibraryGolang?: boolean;
+
+    /**
      * Echo library access key SUBJECT (deterministic per tenant, `et-<id>`),
      * used as the Basic-auth username on the library remotes. JFrog sends creds
      * preemptively, so Basic with the correct subject username authenticates;
@@ -99,6 +107,9 @@ export interface JfrogIntegrationInput {
     /** @default "https://maven.echohq.com" */
     echoMavenUrl?: string;
 
+    /** @default "https://golang.echohq.com" */
+    echoGolangUrl?: string;
+
     /** @default "https://nuget.echohq.com" */
     echoNugetUrl?: string;
 
@@ -119,6 +130,12 @@ export interface JfrogIntegrationInput {
 
     /** Optional override for the NuGet remote key. Defaults to <name>-nuget. */
     echoNugetRepositoryName?: string;
+
+    /** Optional override for the Go remote key. Defaults to <name>-go-remote. */
+    echoGoRepositoryName?: string;
+
+    /** Optional override for the Go virtual key clients resolve through. Defaults to <name>-go. */
+    echoGoVirtualRepositoryName?: string;
 
     // --- OS packages (Debian) ---
 
@@ -178,8 +195,8 @@ export interface JfrogIntegrationInput {
  * JFrog Integration Component.
  *
  * Provisions Artifactory remote repositories that proxy Echo — a Docker remote
- * for images, PyPI/npm/Maven/NuGet remotes for libraries and a Debian remote
- * for OS packages — based on the inputs.
+ * for images, PyPI/npm/Maven/NuGet/Go remotes for libraries, a Go virtual, and
+ * a Debian remote for OS packages — based on the inputs.
  *
  * @example
  * ```typescript
@@ -322,6 +339,33 @@ export class JfrogIntegration extends pulumi.ComponentResource {
             }, { parent: this });
             instructions.push(
                 `NuGet:   add https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}/index.json to nuget.config with protocol version 3; test with: dotnet add package <package> --source https://<your-jfrog-domain>/artifactory/api/nuget/v3/${key}/index.json`,
+            );
+        }
+
+        if (args.echoLibraryGolang) {
+            const key = args.echoGoRepositoryName || `${repositoryName}-go-remote`;
+            const remote = new artifactory.RemoteGoRepository(`${name}-go`, {
+                key,
+                url: args.echoGolangUrl || "https://golang.echohq.com",
+                // Echo is a module proxy. A VCS provider would treat the URL as a git host.
+                vcsGitProvider: "ARTIFACTORY",
+                ...libraryCommon,
+            }, { parent: this });
+            // Artifactory resolves Go only through a virtual. `GoRepository` is that
+            // virtual (there is no VirtualGoRepository class). External dependencies
+            // stay off so a miss 404s instead of cloning from the module's git host.
+            // Requests made on behalf of another Artifactory instance stay off too.
+            const virtualKey = args.echoGoVirtualRepositoryName || `${repositoryName}-go`;
+            new artifactory.GoRepository(`${name}-go-virtual`, {
+                key: virtualKey,
+                repositories: [remote.key],
+                externalDependenciesEnabled: false,
+                artifactoryRequestsCanRetrieveRemoteArtifacts: false,
+                description,
+                notes,
+            }, { parent: this });
+            instructions.push(
+                `Go:      go env -w GOPROXY=https://<your-jfrog-domain>/artifactory/api/go/${virtualKey}; if Artifactory requires client auth, add 'machine <your-jfrog-domain> login <jfrog-username> password <jfrog-token-or-password>' to ~/.netrc; test with: go mod download -x -json github.com/gin-gonic/gin@v1.10.0`,
             );
         }
 

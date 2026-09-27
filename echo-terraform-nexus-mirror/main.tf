@@ -16,6 +16,7 @@ locals {
   npm_repository   = var.echo_npm_repository_name != "" ? var.echo_npm_repository_name : "${var.repository_name}-npm"
   maven_repository = var.echo_maven_repository_name != "" ? var.echo_maven_repository_name : "${var.repository_name}-maven"
   nuget_repository = var.echo_nuget_repository_name != "" ? var.echo_nuget_repository_name : "${var.repository_name}-nuget"
+  go_repository    = var.echo_go_repository_name != "" ? var.echo_go_repository_name : "${var.repository_name}-go"
   deb_repository   = var.echo_deb_repository_name != "" ? var.echo_deb_repository_name : "${var.repository_name}-deb"
 }
 
@@ -90,7 +91,7 @@ resource "nexus_repository_docker_proxy" "echo_proxy" {
 }
 
 
-# Library proxies (PyPI / npm / Maven / NuGet).
+# Library proxies (PyPI / npm / Maven / NuGet / Go).
 #
 # AUTH: plain Basic (`type = "username"`) is correct and sufficient. Echo's
 # library hosts answer unauthenticated requests with
@@ -263,6 +264,50 @@ resource "nexus_repository_nuget_proxy" "echo_nuget" {
     blocked    = var.http_client_blocked
     auto_block = var.http_client_auto_block
 
+    authentication {
+      type     = "username"
+      username = var.echo_library_key_name
+      password = var.echo_library_key_value
+    }
+  }
+
+  routing_rule = var.routing_rule
+}
+
+# Go module proxy for Echo's module proxy.
+#
+# Unlike Artifactory, Nexus serves a Go proxy directly to clients. A Go group
+# is only useful when combining multiple hosted/proxy repositories and is not
+# needed here. Keeping Echo as the sole upstream prevents public fallbacks from
+# bypassing vetting.
+resource "nexus_repository_go_proxy" "echo_go" {
+  count = var.create && var.echo_library_golang ? 1 : 0
+
+  name   = local.go_repository
+  online = var.repository_online
+
+  storage {
+    blob_store_name                = var.blob_store_name
+    strict_content_type_validation = var.strict_content_type_validation
+  }
+
+  proxy {
+    remote_url       = var.echo_golang_url
+    content_max_age  = var.proxy_content_max_age
+    metadata_max_age = var.proxy_metadata_max_age
+  }
+
+  negative_cache {
+    enabled = var.negative_cache_enabled
+    ttl     = var.negative_cache_ttl
+  }
+
+  http_client {
+    blocked    = var.http_client_blocked
+    auto_block = var.http_client_auto_block
+
+    # Echo challenges unauthenticated requests with Basic auth, so the shared
+    # library-key subject and token work without preemptive authentication.
     authentication {
       type     = "username"
       username = var.echo_library_key_name

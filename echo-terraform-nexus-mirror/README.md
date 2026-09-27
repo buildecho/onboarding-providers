@@ -1,7 +1,7 @@
 # Echo Nexus Mirror - Terraform Module
 
 Configures Sonatype Nexus as a proxy for Echo. One module provisions a Docker
-proxy for **images**, PyPI / npm / Maven / NuGet proxies for **libraries** and
+proxy for **images**, PyPI / npm / Maven / NuGet / Go proxies for **libraries** and
 an apt proxy for **OS packages**, based on the inputs. Each repository is
 created only when its flag is set.
 
@@ -21,6 +21,7 @@ module "echo_nexus_mirror" {
   echo_library_pypi      = true
   echo_library_npm       = true
   echo_library_nuget     = true
+  echo_library_golang    = true
   echo_library_key_name  = var.echo_library_key_name
   echo_library_key_value = var.echo_library_key_value
 
@@ -61,25 +62,35 @@ terraform init && terraform apply
 > challenged never sent credentials, and preemptive auth (which the
 > `datadrivers/nexus` provider cannot configure for pypi/npm) was the only way
 > through. Echo now issues the challenge at the edge, so the provider's plain
-> `type = "username"` auth works for all four formats.
+> `type = "username"` auth works for every format, including Go.
 
 - `echo_library_pypi` / `echo_library_npm` / `echo_library_maven` /
-  `echo_library_nuget` (bool, default: `false`)
+  `echo_library_nuget` / `echo_library_golang` (bool, default: `false`)
 - `echo_library_key_name` (string, sensitive) — Basic auth username, the Echo library access-key subject (`et-<id>`)
 - `echo_library_key_value` (string, sensitive) — Basic auth password, the library access token
 - `echo_pypi_url` (default: `"https://pypi.echohq.com"`)
 - `echo_npm_url` (default: `"https://npm.echohq.com"`)
 - `echo_maven_url` (default: `"https://maven.echohq.com"`)
 - `echo_nuget_url` (default: `"https://nuget.echohq.com/index.json"`)
+- `echo_golang_url` (default: `"https://golang.echohq.com"`)
 - `echo_pypi_repository_name` / `echo_npm_repository_name` /
-  `echo_maven_repository_name` / `echo_nuget_repository_name`
-  (string, default: `""` → `<repository_name>-{pypi,npm,maven,nuget}`)
+  `echo_maven_repository_name` / `echo_nuget_repository_name` /
+  `echo_go_repository_name`
+  (string, default: `""` → `<repository_name>-{pypi,npm,maven,nuget,go}`)
 - `maven_version_policy` (string, default: `"MIXED"`) / `maven_layout_policy` (string, default: `"PERMISSIVE"`)
 - `nuget_query_cache_item_max_age` (number, default: `3600` seconds)
 
 > **NuGet routing:** the proxy uses Echo's NuGet V3 service index. Nexus treats
 > symbols as a separate optional upstream, which this module leaves
 > unconfigured because Echo does not expose a symbol server.
+
+> **Go routing:** Nexus serves the Go proxy directly to clients; a Go group is
+> only needed when combining multiple hosted/proxy repositories. Point
+> `GOPROXY` at `https://<nexus-host>/repository/<repository_name>-go/` without
+> appending `proxy.golang.org` or `direct`, since either fallback can bypass
+> Echo. The module does not disable Go's checksum database. If Nexus requires
+> client authentication, add the customer's Nexus credentials for the Nexus
+> hostname to `~/.netrc`.
 
 ### OS packages (Debian)
 - `echo_os_packages` (bool, default: `false`) — provision the apt proxy

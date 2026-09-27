@@ -6,6 +6,7 @@ output "usage_instructions" {
     var.echo_library_npm ? "npm:     npm install --registry https://<nexus-host>/repository/${local.npm_repository}/ <package>" : "",
     var.echo_library_maven ? "Maven:   add https://<nexus-host>/repository/${local.maven_repository} as a repository in your settings.xml" : "",
     var.echo_library_nuget ? "NuGet:   dotnet add package <package> --source https://<nexus-host>/repository/${local.nuget_repository}/index.json" : "",
+    var.echo_library_golang ? "Go:      go env -w GOPROXY=https://<nexus-host>/repository/${local.go_repository}/; if Nexus requires client auth, add 'machine <nexus-host> login <nexus-username> password <nexus-token-or-password>' to ~/.netrc; test with: go mod download -x -json github.com/gin-gonic/gin@v1.10.0" : "",
     var.echo_os_packages ? "OS pkgs: in a Dockerfile built FROM an Echo image, run: echo-apt-mirror https://<nexus-host>/repository/${local.deb_repository}" : "",
   ])) : null
 }
@@ -22,6 +23,7 @@ output "library_repository_keys" {
     var.echo_library_npm ? local.npm_repository : "",
     var.echo_library_maven ? local.maven_repository : "",
     var.echo_library_nuget ? local.nuget_repository : "",
+    var.echo_library_golang ? local.go_repository : "",
   ])
 }
 

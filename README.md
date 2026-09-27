@@ -28,7 +28,8 @@ Infrastructure-as-code templates to integrate container registries with Echo reg
 
 ### JFrog Artifactory
 
-Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages (Debian).
+Mirrors images, libraries (PyPI / npm / Maven / NuGet / Go) and OS packages
+(Debian).
 
 | Tool | Status | Directory |
 |------|--------|-----------|
@@ -37,7 +38,7 @@ Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages (Debian).
 
 ### Sonatype Nexus
 
-Mirrors images, libraries (PyPI / npm / Maven / NuGet) and OS packages
+Mirrors images, libraries (PyPI / npm / Maven / NuGet / Go) and OS packages
 (Debian).
 
 | Tool | Status | Directory |
