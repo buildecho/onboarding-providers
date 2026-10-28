@@ -9,7 +9,7 @@ mock_provider "aws" {
   override_data {
     target = data.aws_region.current
     values = {
-      region = "us-west-2"
+      id = "us-west-2"
     }
   }
 }

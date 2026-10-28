@@ -18,9 +18,6 @@ module "echo_ecr_cache" {
 terraform init && terraform apply -auto-approve
 ```
 
-## Requirements
-- AWS provider `>= 6.0`
-
 ## Inputs
 - `create` (bool, default: `true`)
 - `echo_registry_account_id` (string, required)

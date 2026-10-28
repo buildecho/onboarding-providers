@@ -9,5 +9,5 @@ output "role_arn" {
 
 output "usage_instructions" {
   description = "Usage instructions for pulling via the mirror"
-  value       = var.create ? "docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/${var.cache_namespace}/<image>:<tag>" : null
+  value       = var.create ? "docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/${var.cache_namespace}/<image>:<tag>" : null
 }
