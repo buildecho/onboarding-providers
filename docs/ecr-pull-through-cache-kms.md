@@ -65,7 +65,9 @@ Whenever the template uses KMS or non-empty `repository_tags` /
   KMS.
 
 `ecr:ReplicateImage` is left out because the template applies only to
-`PULL_THROUGH_CACHE`.
+`PULL_THROUGH_CACHE`. AWS's sample policy includes it because that sample
+template also covers `REPLICATION`. If you reuse the role for a replication
+template, add `ecr:ReplicateImage`.
 
 To use your own role instead, pass `creation_role_arn` / `creationRoleArn`.
 Your role needs the same trust and permissions.
@@ -212,6 +214,34 @@ reset to the module defaults on the next apply.
 
 ## Troubleshooting "image doesn't exist" and KMS errors
 
+### Known failure mode: KMS (or tags) without a repository creation role
+
+This was reproduced in a test account with the same setup the modules create:
+an ECR-to-ECR pull-through cache from the Echo registry, using the rule's
+`customRoleArn` role and no Secrets Manager credential. The test template had
+the PTC prefix, `appliedFor = [PULL_THROUGH_CACHE]`, and a customer managed KMS
+key.
+
+| Template | Result |
+|---|---|
+| With `customRoleArn`: a role trusting `ecr.amazonaws.com` that has `ecr:CreateRepository` / `ecr:TagResource` and `kms:CreateGrant` / `kms:RetireGrant` / `kms:DescribeKey` on the key | The first pull and later cached pulls succeed. The repository is encrypted with the customer managed key. CloudTrail shows `CreateGrant` with grantee principal `ecr.<region>.amazonaws.com`. |
+| Without `customRoleArn` | ECR creates the repository with the service-linked role `AWSServiceRoleForECRTemplate`. That `CreateRepository` fails with a `KmsException` on `kms:DescribeKey`. |
+| Without `customRoleArn`, with `resourceTags` | The same call fails earlier, on `ecr:TagResource`. |
+
+In both failure cases, `docker pull` only shows:
+
+```text
+name unknown: The repository with name '<cache_namespace>/<image>' does not exist in the registry with id '<account>'
+```
+
+Docker reports this as "repository ... does not exist" or "image doesn't exist",
+even though the real error is the failed repository creation. The modules avoid
+this failure: whenever the template uses KMS or tags, they always set
+`customRoleArn`, either the module-created role or `creation_role_arn` /
+`creationRoleArn`.
+
+### Checklist
+
 1. **Check the template.** Run
    `aws ecr describe-repository-creation-templates --prefixes echo`. Confirm
    that `appliedFor` contains `PULL_THROUGH_CACHE`, that `prefix` equals the PTC
@@ -221,7 +251,11 @@ reset to the module defaults on the next apply.
    `aws ecr validate-pull-through-cache-rule --ecr-repository-prefix echo`.
 3. **Check CloudTrail in the PTC account**, in the registry's Region:
    - `ecr.amazonaws.com` `CreateRepository`. ECR calls it for you; look at its
-     `errorCode` / `errorMessage`.
+     `errorCode` / `errorMessage`. If the caller is
+     `AWSServiceRoleForECRTemplate` and the error is a `KmsException` on
+     `kms:DescribeKey` or an `ecr:TagResource` denial, the template is missing
+     `customRoleArn`. If the caller is your creation role, its permissions or
+     the key policy are the problem.
    - `sts.amazonaws.com` `AssumeRole` of the creation role by
      `ecr.amazonaws.com`. If it fails, check the role's trust policy.
    - `kms.amazonaws.com` `DescribeKey` / `CreateGrant` with
