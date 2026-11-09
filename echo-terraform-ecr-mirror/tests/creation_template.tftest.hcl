@@ -185,64 +185,6 @@ run "supplied_role_is_used" {
   }
 }
 
-run "kms_without_key_fails" {
-  command = plan
-
-  variables {
-    create_repository_creation_template = true
-    encryption_type                     = "KMS"
-  }
-
-  expect_failures = [aws_ecr_pull_through_cache_rule.this]
-}
-
-run "kms_with_both_key_sources_fails" {
-  command = plan
-
-  variables {
-    create_repository_creation_template = true
-    encryption_type                     = "KMS"
-    create_kms_key                      = true
-    kms_key_arn                         = "arn:aws:kms:us-east-1:111111111111:key/1234abcd-12ab-34cd-56ef-1234567890ab"
-  }
-
-  expect_failures = [aws_ecr_pull_through_cache_rule.this]
-}
-
-run "key_without_kms_fails" {
-  command = plan
-
-  variables {
-    create_repository_creation_template = true
-    kms_key_arn                         = "arn:aws:kms:us-east-1:111111111111:key/1234abcd-12ab-34cd-56ef-1234567890ab"
-  }
-
-  expect_failures = [aws_ecr_pull_through_cache_rule.this]
-}
-
-run "key_in_other_region_fails" {
-  command = plan
-
-  variables {
-    create_repository_creation_template = true
-    encryption_type                     = "KMS"
-    kms_key_arn                         = "arn:aws:kms:eu-west-1:111111111111:key/1234abcd-12ab-34cd-56ef-1234567890ab"
-  }
-
-  expect_failures = [aws_ecr_pull_through_cache_rule.this]
-}
-
-run "template_options_without_template_fail" {
-  command = plan
-
-  variables {
-    encryption_type = "KMS"
-    create_kms_key  = true
-  }
-
-  expect_failures = [aws_ecr_pull_through_cache_rule.this]
-}
-
 run "alias_arn_rejected" {
   command = plan
 

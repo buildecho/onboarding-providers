@@ -33,6 +33,16 @@ locals {
     var.repository_policy != null ||
     length(var.repository_tags) > 0
   )
+
+  # Cross-input checks. Raised from outputs.tf (not via precondition blocks) so the
+  # module keeps working on Terraform >= 1.0.
+  input_errors = compact([
+    !var.create || var.create_repository_creation_template || !local.template_options_set ? "" : "Repository creation template inputs (encryption_type, kms_key_arn, create_kms_key, creation_role_arn, image_tag_mutability, lifecycle_policy, repository_policy, repository_tags) only take effect with create_repository_creation_template = true. Set it to true, or remove those inputs.",
+    !local.use_kms || (var.kms_key_arn != null) != var.create_kms_key ? "" : "encryption_type = \"KMS\" requires exactly one of: kms_key_arn = \"arn:aws:kms:<region>:<account>:key/<id>\" (existing key, same or other account), or create_kms_key = true (module creates a key in this account).",
+    local.use_kms || (var.kms_key_arn == null && !var.create_kms_key) ? "" : "kms_key_arn / create_kms_key are only used with encryption_type = \"KMS\". Set encryption_type = \"KMS\" or remove them.",
+    var.kms_key_arn == null || local.kms_key_arn_region == local.region ? "" : "kms_key_arn is in Region ${coalesce(local.kms_key_arn_region, "-")} but this ECR registry is in ${local.region}. ECR requires the KMS key to be in the same Region as the repositories (it may be in a different account).",
+  ])
+  inputs_valid = length(local.input_errors) == 0 ? true : tobool("echo-terraform-ecr-mirror input error: ${join(" | ", local.input_errors)}")
 }
 
 # ECR Pullthrough Cache Rule
@@ -46,27 +56,6 @@ resource "aws_ecr_pull_through_cache_rule" "this" {
 
   depends_on = [aws_iam_role.ecr_access]
 
-  lifecycle {
-    precondition {
-      condition     = var.create_repository_creation_template || !local.template_options_set
-      error_message = "Repository creation template inputs (encryption_type, kms_key_arn, create_kms_key, creation_role_arn, image_tag_mutability, lifecycle_policy, repository_policy, repository_tags) only take effect with create_repository_creation_template = true. Set it to true, or remove those inputs."
-    }
-
-    precondition {
-      condition     = !local.use_kms || (var.kms_key_arn != null) != var.create_kms_key
-      error_message = "encryption_type = \"KMS\" requires exactly one of: kms_key_arn = \"arn:aws:kms:<region>:<account>:key/<id>\" (existing key, same or other account), or create_kms_key = true (module creates a key in this account)."
-    }
-
-    precondition {
-      condition     = local.use_kms || (var.kms_key_arn == null && !var.create_kms_key)
-      error_message = "kms_key_arn / create_kms_key are only used with encryption_type = \"KMS\". Set encryption_type = \"KMS\" or remove them."
-    }
-
-    precondition {
-      condition     = var.kms_key_arn == null || local.kms_key_arn_region == local.region
-      error_message = "kms_key_arn is in Region ${coalesce(local.kms_key_arn_region, "-")} but this ECR registry is in ${local.region}. ECR requires the KMS key to be in the same Region as the repositories (it may be in a different account)."
-    }
-  }
 }
 
 # IAM Role for ECR access

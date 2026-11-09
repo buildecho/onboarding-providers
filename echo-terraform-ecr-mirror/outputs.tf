@@ -14,7 +14,7 @@ output "usage_instructions" {
 
 output "repository_creation_template_prefix" {
   description = "Prefix of the managed repository creation template (equals cache_namespace), or null when no template is managed"
-  value       = one(aws_ecr_repository_creation_template.this[*].prefix)
+  value       = local.inputs_valid ? one(aws_ecr_repository_creation_template.this[*].prefix) : null
 }
 
 output "repository_creation_role_arn" {
@@ -24,7 +24,7 @@ output "repository_creation_role_arn" {
 
 output "kms_key_arn" {
   description = "ARN of the KMS key used to encrypt new cache repositories, or null when encryption_type = AES256"
-  value       = local.kms_key_arn
+  value       = local.inputs_valid ? local.kms_key_arn : null
 }
 
 output "kms_key_is_cross_account" {

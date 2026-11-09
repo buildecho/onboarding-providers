@@ -22,7 +22,9 @@ terraform init && terraform apply -auto-approve
 ```
 
 ## Requirements
+- Terraform `>= 1.0`
 - AWS provider `>= 6.0`
+- Repository creation template inputs: module version `v2.1.0` or later
 
 ## Inputs
 
@@ -58,7 +60,8 @@ policies), exactly as before.
 | `repository_policy` | `null` | Repository policy JSON |
 | `repository_tags` | `{}` | Tags on the cache repositories that ECR creates |
 
-The module validates these inputs, for example:
+The module validates these inputs at plan time. Errors about combinations of inputs
+start with `echo-terraform-ecr-mirror input error:`. Examples:
 - `encryption_type = "KMS"` without `kms_key_arn` or `create_kms_key`, or with both.
 - A key ARN in a different Region, or an alias instead of an ARN.
 - Template inputs set without `create_repository_creation_template = true`.
@@ -91,7 +94,7 @@ Existing key in the same account:
 
 ```hcl
 module "echo_ecr_cache" {
-  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror?ref=v2.1.0"
 
   echo_registry_account_id            = "123456789012"
   create_repository_creation_template = true
@@ -105,7 +108,7 @@ owns the key:
 
 ```hcl
 module "echo_kms_key_owner" {
-  source    = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror/modules/kms-key-owner"
+  source    = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror/modules/kms-key-owner?ref=v2.1.0"
   providers = { aws = aws.key_owner }
 
   consumer_account_id = "111122223333" # account running the pull-through cache
@@ -121,8 +124,10 @@ See [docs/ecr-pull-through-cache-kms.md](../docs/ecr-pull-through-cache-kms.md) 
 - How to adopt an existing template.
 - Troubleshooting *"image doesn't exist"* errors, including which CloudTrail events to check.
 
-## Upgrading / state impact
-With the new inputs at their defaults, `terraform plan` shows **no changes** for
+## Upgrading from v2.0.0 / state impact
+v2.1.0 is a minor release. It adds no required inputs, and the Terraform and AWS
+provider requirements are unchanged (`>= 1.0` / `>= 6.0`). With the new inputs at
+their defaults, `terraform plan` shows **no changes** for
 existing deployments.
 
 Enabling the template only **adds** resources: the template, plus the role and

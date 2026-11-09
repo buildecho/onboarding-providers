@@ -4,7 +4,7 @@ variable "consumer_account_id" {
 
   validation {
     condition     = can(regex("^[0-9]{12}$", var.consumer_account_id))
-    error_message = "consumer_account_id must be a 12-digit AWS account ID."
+    error_message = "Input consumer_account_id must be a 12-digit AWS account ID."
   }
 }
 
@@ -15,7 +15,7 @@ variable "consumer_creation_role_name" {
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9+=,.@_/-]{1,512}$", var.consumer_creation_role_name))
-    error_message = "consumer_creation_role_name must be an IAM role name (optionally with a path, e.g. my/path/role-name)."
+    error_message = "Input consumer_creation_role_name must be an IAM role name (optionally with a path, e.g. my/path/role-name)."
   }
 }
 
@@ -37,8 +37,8 @@ variable "kms_key_alias" {
   default     = "alias/echo-ecr-mirror"
 
   validation {
-    condition     = try(can(regex("^alias/[a-zA-Z0-9/_-]+$", var.kms_key_alias)) && !startswith(var.kms_key_alias, "alias/aws/"), var.kms_key_alias == null)
-    error_message = "kms_key_alias must start with \"alias/\" and must not start with \"alias/aws/\"."
+    condition     = try(can(regex("^alias/[a-zA-Z0-9/_-]+$", var.kms_key_alias)) && substr(var.kms_key_alias, 0, 10) != "alias/aws/", var.kms_key_alias == null)
+    error_message = "Input kms_key_alias must start with \"alias/\" and must not start with \"alias/aws/\"."
   }
 }
 
@@ -49,7 +49,7 @@ variable "kms_key_deletion_window_in_days" {
 
   validation {
     condition     = var.kms_key_deletion_window_in_days >= 7 && var.kms_key_deletion_window_in_days <= 30
-    error_message = "kms_key_deletion_window_in_days must be between 7 and 30."
+    error_message = "Input kms_key_deletion_window_in_days must be between 7 and 30."
   }
 }
 

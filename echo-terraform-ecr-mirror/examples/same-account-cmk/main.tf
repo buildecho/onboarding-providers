@@ -2,8 +2,10 @@
 # The module creates the repository creation role and grants it
 # kms:CreateGrant / kms:RetireGrant / kms:DescribeKey on the key via IAM.
 # This works as long as the key policy delegates to IAM (the default key
-# policy's "Enable IAM User Permissions" statement). If your key policy does
-# not, add the statement shown in the README.
+# policy's "Enable IAM User Permissions" statement).
+#
+#   cp terraform.tfvars.example terraform.tfvars   # fill in values
+#   terraform init && terraform apply
 
 terraform {
   required_version = ">= 1.0"
@@ -17,17 +19,21 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
 }
 
 module "echo_ecr_cache" {
   source = "../../"
 
-  echo_registry_account_id = "123456789012"
+  echo_registry_account_id = var.echo_registry_account_id
+  cache_namespace          = var.cache_namespace
+  role_name                = "${var.cache_namespace}-ptc-role"
+  policy_name              = "${var.cache_namespace}-ptc-policy"
 
   create_repository_creation_template = true
   encryption_type                     = "KMS"
-  kms_key_arn                         = "arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+  kms_key_arn                         = var.kms_key_arn
+  creation_role_name                  = "${var.cache_namespace}-repo-creation-role"
 
   lifecycle_policy = jsonencode({
     rules = [{
@@ -44,8 +50,12 @@ module "echo_ecr_cache" {
   })
 
   repository_tags = {
-    team = "platform"
+    managed-by = "echo-terraform-ecr-mirror"
   }
+}
+
+output "how_to_use" {
+  value = module.echo_ecr_cache.usage_instructions
 }
 
 output "creation_role_arn" {

@@ -1,0 +1,6 @@
+region                   = "us-east-1"
+echo_registry_account_id = "<echo registry account id>"
+# cache_namespace        = "echo-tf-cross-account-cmk"
+consumer_profile         = "<profile for the pull-through cache account>"
+key_owner_profile        = "<profile for the key owner account>"
+# key_owner_assume_role_arn = "arn:aws:iam::<key owner account id>:role/<role>"

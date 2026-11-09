@@ -14,7 +14,7 @@ the consumer role exists.
 
 ```hcl
 module "echo_kms_key_owner" {
-  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror/modules/kms-key-owner"
+  source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror/modules/kms-key-owner?ref=v2.1.0"
 
   consumer_account_id = "111122223333"
 }

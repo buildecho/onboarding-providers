@@ -1,6 +1,9 @@
 # Default: pull-through cache rule only. ECR creates cache repositories with
 # its defaults (AES256, MUTABLE tags, no policies). Identical to the module's
 # behaviour before repository creation template support was added.
+#
+#   cp terraform.tfvars.example terraform.tfvars   # fill in values
+#   terraform init && terraform apply
 
 terraform {
   required_version = ">= 1.0"
@@ -14,7 +17,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
 }
 
 module "echo_ecr_cache" {
@@ -22,7 +25,10 @@ module "echo_ecr_cache" {
   # source = "git@github.com:buildecho/onboarding-providers.git//echo-terraform-ecr-mirror"
   source = "../../"
 
-  echo_registry_account_id = "123456789012"
+  echo_registry_account_id = var.echo_registry_account_id
+  cache_namespace          = var.cache_namespace
+  role_name                = "${var.cache_namespace}-ptc-role"
+  policy_name              = "${var.cache_namespace}-ptc-policy"
 }
 
 output "how_to_use" {
