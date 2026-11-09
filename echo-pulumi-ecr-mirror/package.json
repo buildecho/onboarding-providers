@@ -2,6 +2,10 @@
   "name": "echo-pulumi-ecr-mirror",
   "description": "Pulumi component for setting up AWS ECR pull-through cache to integrate with Echo registry",
   "homepage": "https://github.com/buildecho/onboarding-providers#readme",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p examples/tsconfig.typecheck.json",
+    "test": "tsc -p tsconfig.test.json && node --test bin-test/test/index.test.js"
+  },
   "devDependencies": {
     "@types/node": "^18",
     "typescript": "^5.0.0"

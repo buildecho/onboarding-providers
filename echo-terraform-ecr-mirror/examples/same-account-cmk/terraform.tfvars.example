@@ -1,0 +1,4 @@
+region                   = "us-east-1"
+echo_registry_account_id = "<echo registry account id>"
+# cache_namespace        = "echo-tf-same-account-cmk"
+kms_key_arn              = "arn:aws:kms:us-east-1:<this account id>:key/<key id>"

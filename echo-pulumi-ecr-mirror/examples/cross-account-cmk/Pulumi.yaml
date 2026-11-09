@@ -1,0 +1,22 @@
+name: echo-ecr-mirror-cross-account-cmk
+description: "Echo ECR pull-through cache example: KMS key owned by another account"
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+config:
+  echoRegistryAccountId:
+    type: string
+    description: Echo registry account ID (provided by Echo)
+  cacheNamespace:
+    type: string
+    default: echo-pulumi-cross-account-cmk
+    description: Pull-through cache prefix; IAM role, policy and KMS alias names are derived from it
+  keyOwnerProfile:
+    type: string
+    default: ""
+    description: AWS CLI profile for the key owner account (empty = default credentials)
+  keyOwnerAssumeRoleArn:
+    type: string
+    default: ""
+    description: Optional role to assume in the key owner account
