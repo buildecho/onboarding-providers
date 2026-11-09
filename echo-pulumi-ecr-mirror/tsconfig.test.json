@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "bin-test",
+        "sourceMap": false
+    },
+    "files": [
+        "index.ts",
+        "test/index.test.ts"
+    ]
+}
