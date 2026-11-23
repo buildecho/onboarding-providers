@@ -1,0 +1,17 @@
+name: echo-ecr-mirror-same-account-cmk
+description: "Echo ECR pull-through cache example: Existing KMS key in the same account"
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+config:
+  echoRegistryAccountId:
+    type: string
+    description: Echo registry account ID (provided by Echo)
+  cacheNamespace:
+    type: string
+    default: echo-pulumi-same-account-cmk
+    description: Pull-through cache prefix; IAM role, policy and KMS alias names are derived from it
+  kmsKeyArn:
+    type: string
+    description: Full ARN of an existing KMS key in this account and Region

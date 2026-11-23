@@ -12,6 +12,8 @@ Infrastructure-as-code templates to integrate container registries with Echo reg
 | **Terraform** | ✅ Ready | [`/echo-terraform-ecr-mirror`](./echo-terraform-ecr-mirror) |
 | **Pulumi** | ✅ Ready | [`/echo-pulumi-ecr-mirror`](./echo-pulumi-ecr-mirror) |
 
+The Terraform and Pulumi modules can optionally manage the repository creation template for cached repositories. This covers KMS encryption with your own key, including keys owned by another account. See [docs/ecr-pull-through-cache-kms.md](./docs/ecr-pull-through-cache-kms.md).
+
 ### Google Artifact Registry (GAR) Remote Repositories
 
 | Tool | Status | Directory |

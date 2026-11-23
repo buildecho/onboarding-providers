@@ -4,3 +4,6 @@ node_modules
 terraform.tfstate*
 dist
 sdks
+terraform.tfvars
+bin-test
+echo-pulumi-ecr-mirror/examples/*/Pulumi.*.yaml

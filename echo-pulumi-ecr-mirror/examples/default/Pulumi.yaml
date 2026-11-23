@@ -1,0 +1,14 @@
+name: echo-ecr-mirror-default
+description: "Echo ECR pull-through cache example: Rule only, ECR defaults"
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+config:
+  echoRegistryAccountId:
+    type: string
+    description: Echo registry account ID (provided by Echo)
+  cacheNamespace:
+    type: string
+    default: echo-pulumi-default
+    description: Pull-through cache prefix; IAM role, policy and KMS alias names are derived from it

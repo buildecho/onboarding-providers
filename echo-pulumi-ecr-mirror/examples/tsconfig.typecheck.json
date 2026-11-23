@@ -1,0 +1,12 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true
+    },
+    "files": [
+        "default/index.ts",
+        "same-account-cmk/index.ts",
+        "module-created-cmk/index.ts",
+        "cross-account-cmk/index.ts"
+    ]
+}

@@ -1,0 +1,3 @@
+region                   = "us-east-1"
+echo_registry_account_id = "<echo registry account id>"
+# cache_namespace        = "echo-tf-default"
