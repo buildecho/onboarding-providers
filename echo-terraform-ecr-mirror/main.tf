@@ -23,17 +23,20 @@ locals {
 
   cache_repository_arn_pattern = "arn:${local.partition}:ecr:${local.region}:${local.account_id}:repository/${var.cache_namespace}/*"
 
-  # Read actions: needed on Echo's (upstream) repositories as well as the local cache repositories.
+  # Actions allowed on Echo's (upstream) repositories as well as the local cache repositories.
+  # The import/copy-status actions are included because it is not documented which registry's
+  # repository ARN ECR evaluates for them in a cross-account pull; Echo's repository policy
+  # still controls what the upstream side permits.
   pull_through_read_actions = [
     "ecr:BatchCheckLayerAvailability",
     "ecr:GetDownloadUrlForLayer",
-    "ecr:BatchGetImage"
+    "ecr:BatchGetImage",
+    "ecr:BatchImportUpstreamImage",
+    "ecr:GetImageCopyStatus"
   ]
 
   # Write actions: only ever needed on the local cache repositories.
   pull_through_write_actions = [
-    "ecr:BatchImportUpstreamImage",
-    "ecr:GetImageCopyStatus",
     "ecr:InitiateLayerUpload",
     "ecr:UploadLayerPart",
     "ecr:CompleteLayerUpload",

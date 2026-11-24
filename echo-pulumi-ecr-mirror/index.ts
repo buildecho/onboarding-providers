@@ -233,11 +233,14 @@ const PULL_THROUGH_READ_ACTIONS = [
     "ecr:BatchCheckLayerAvailability",
     "ecr:GetDownloadUrlForLayer",
     "ecr:BatchGetImage",
+    // Included on upstream repositories too: it is not documented which registry's repository
+    // ARN ECR evaluates for these in a cross-account pull. Echo's repository policy still
+    // controls what the upstream side permits.
+    "ecr:BatchImportUpstreamImage",
+    "ecr:GetImageCopyStatus",
 ];
 
 const PULL_THROUGH_WRITE_ACTIONS = [
-    "ecr:BatchImportUpstreamImage",
-    "ecr:GetImageCopyStatus",
     "ecr:InitiateLayerUpload",
     "ecr:UploadLayerPart",
     "ecr:CompleteLayerUpload",

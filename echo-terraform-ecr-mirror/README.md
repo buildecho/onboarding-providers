@@ -35,7 +35,7 @@ terraform init && terraform apply -auto-approve
 - `cache_namespace` (string, default: `echo`)
 - `role_name` (string, default: `echo-ecr-mirror-role`)
 - `policy_name` (string, default: `echo-ecr-mirror-policy`)
-- `restrict_role_to_cache_namespace` (bool, default: `false`): scope the pull-through role instead of `Resource: "*"`: read actions are allowed on Echo's upstream repositories and `cache_namespace/*`; write actions (`PutImage`, layer uploads, `BatchImportUpstreamImage`) only on `cache_namespace/*`. `ecr:GetAuthorizationToken` stays on `*` because ECR doesn't support resource-level permissions for it.
+- `restrict_role_to_cache_namespace` (bool, default: `false`): scope the pull-through role instead of `Resource: "*"`: read, import and copy-status actions are allowed on Echo's upstream repositories and `cache_namespace/*`; layer uploads and `PutImage` only on `cache_namespace/*`. `ecr:GetAuthorizationToken` stays on `*` because ECR doesn't support resource-level permissions for it.
 - `tags` (map(string), optional): tags on the IAM roles and KMS key created by the module
 
 ### Repository creation template (optional)

@@ -235,6 +235,11 @@ run "pull_through_role_restricted_to_namespace" {
   }
 
   assert {
+    condition     = length(regexall("repository/\\*", aws_iam_role_policy.ecr_pullthrough_cache[0].policy)) == 1 && strcontains(aws_iam_role_policy.ecr_pullthrough_cache[0].policy, "ecr:GetImageCopyStatus")
+    error_message = "Import/copy-status actions must be in the statement that covers the upstream repositories."
+  }
+
+  assert {
     condition     = length(regexall("\"Resource\":\"\\*\"", aws_iam_role_policy.ecr_pullthrough_cache[0].policy)) == 1
     error_message = "Only ecr:GetAuthorizationToken may use Resource \"*\"."
   }

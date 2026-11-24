@@ -174,4 +174,5 @@ test("restrictRoleToCacheNamespace scopes reads to upstream+cache and writes to 
     const writes = doc.Statement.find((s: any) => s.Action.includes("ecr:PutImage"));
     assert.equal(writes.Resource, cacheArn);
     assert.ok(!writes.Action.includes("ecr:BatchGetImage"));
+    assert.ok(reads.Action.includes("ecr:BatchImportUpstreamImage") && reads.Action.includes("ecr:GetImageCopyStatus"));
 });
