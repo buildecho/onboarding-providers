@@ -207,3 +207,35 @@ run "invalid_lifecycle_policy_rejected" {
 
   expect_failures = [var.lifecycle_policy]
 }
+
+run "pull_through_role_defaults_to_wildcard_resource" {
+  command = plan
+
+  assert {
+    condition     = strcontains(aws_iam_role_policy.ecr_pullthrough_cache[0].policy, "\"Resource\":\"*\"") && !strcontains(aws_iam_role_policy.ecr_pullthrough_cache[0].policy, "repository/echo/*")
+    error_message = "Pull-through role policy must keep Resource \"*\" unless restrict_role_to_cache_namespace is set."
+  }
+}
+
+run "pull_through_role_restricted_to_namespace" {
+  command = plan
+
+  variables {
+    restrict_role_to_cache_namespace = true
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_role_policy.ecr_pullthrough_cache[0].policy, "arn:aws:ecr:us-east-1:111111111111:repository/echo/*")
+    error_message = "Repository actions must be scoped to the cache namespace."
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_role_policy.ecr_pullthrough_cache[0].policy, "arn:aws:ecr:us-east-1:123456789012:repository/*")
+    error_message = "Read actions must also be allowed on Echo's upstream repositories, or cross-account pulls fail."
+  }
+
+  assert {
+    condition     = length(regexall("\"Resource\":\"\\*\"", aws_iam_role_policy.ecr_pullthrough_cache[0].policy)) == 1
+    error_message = "Only ecr:GetAuthorizationToken may use Resource \"*\"."
+  }
+}

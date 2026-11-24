@@ -44,6 +44,15 @@ export interface EcrPullThroughCacheInput {
     policyName?:pulumi.Input<string>;
     
     /**
+     * Scope the pull-through cache role instead of using `Resource: "*"`. Read actions are
+     * allowed on Echo's upstream repositories and `<cacheNamespace>/*`; write actions
+     * (PutImage, layer uploads, BatchImportUpstreamImage) only on `<cacheNamespace>/*`.
+     * ecr:GetAuthorizationToken always uses "*" (ECR has no resource-level permissions for it).
+     * @default false
+     */
+    restrictRoleToCacheNamespace?: boolean;
+
+    /**
      * Additional tags to apply to created resources (IAM roles, KMS key)
      */
     tags?: Record<string, string>;
@@ -220,6 +229,56 @@ function validateInput(args: EcrPullThroughCacheInput): void {
 /**
  * Validates that `arn` is a full KMS key ARN in `registryRegion` and returns it.
  */
+const PULL_THROUGH_READ_ACTIONS = [
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:GetDownloadUrlForLayer",
+    "ecr:BatchGetImage",
+];
+
+const PULL_THROUGH_WRITE_ACTIONS = [
+    "ecr:BatchImportUpstreamImage",
+    "ecr:GetImageCopyStatus",
+    "ecr:InitiateLayerUpload",
+    "ecr:UploadLayerPart",
+    "ecr:CompleteLayerUpload",
+    "ecr:PutImage",
+];
+
+/**
+ * Builds the pull-through cache role's inline policy. Unrestricted (default) keeps the
+ * original single `Resource: "*"` statement.
+ */
+export function buildPullThroughCachePolicy(params: {
+    restrict: boolean;
+    partition: string;
+    region: string;
+    accountId: string;
+    cacheNamespace: string;
+    echoRegistryAccountId: string;
+    echoRegistryRegion: string;
+}): string {
+    if (!params.restrict) {
+        return JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [{
+                Effect: "Allow",
+                Action: ["ecr:GetAuthorizationToken", ...PULL_THROUGH_READ_ACTIONS, ...PULL_THROUGH_WRITE_ACTIONS],
+                Resource: "*",
+            }],
+        });
+    }
+    const cacheArn = `arn:${params.partition}:ecr:${params.region}:${params.accountId}:repository/${params.cacheNamespace}/*`;
+    const upstreamArn = `arn:${params.partition}:ecr:${params.echoRegistryRegion}:${params.echoRegistryAccountId}:repository/*`;
+    return JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+            { Effect: "Allow", Action: ["ecr:GetAuthorizationToken"], Resource: "*" },
+            { Effect: "Allow", Action: PULL_THROUGH_READ_ACTIONS, Resource: [upstreamArn, cacheArn] },
+            { Effect: "Allow", Action: PULL_THROUGH_WRITE_ACTIONS, Resource: cacheArn },
+        ],
+    });
+}
+
 export function validateKmsKeyArn(arn: string, registryRegion: string): string {
     if (!KMS_KEY_ARN_PATTERN.test(arn)) {
         fail(`kmsKeyArn must be a full KMS key ARN, e.g. arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab (got "${arn}"). Aliases and bare key IDs are not supported by ECR repository creation templates.`);
@@ -340,27 +399,22 @@ export class EcrPullThroughCache extends pulumi.ComponentResource {
         const ecrPullPolicy = new aws.iam.RolePolicy(`${name}-${policyName}`, {
             name: policyName,
             role: ecrPullThroughCacheRole.id,
-            policy: JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [
-                    {
-                        Effect: "Allow",
-                        Action: [
-                            "ecr:GetAuthorizationToken",
-                            "ecr:BatchCheckLayerAvailability",
-                            "ecr:GetDownloadUrlForLayer",
-                            "ecr:BatchGetImage",
-                            "ecr:BatchImportUpstreamImage",
-                            "ecr:GetImageCopyStatus",
-                            "ecr:InitiateLayerUpload",
-                            "ecr:UploadLayerPart",
-                            "ecr:CompleteLayerUpload",
-                            "ecr:PutImage"
-                        ],
-                        Resource: "*"
-                    }
-                ]
-            })
+            policy: pulumi.all([
+                aws.getPartitionOutput({}, { parent: this }).partition,
+                pulumi.output(currentRegion).name,
+                pulumi.output(current).accountId,
+                pulumi.output(cacheNamespace),
+                pulumi.output(args.echoRegistryAccountId),
+                pulumi.output(echoRegistryRegion),
+            ]).apply(([partition, region, accountId, ns, echoAccountId, echoRegion]) => buildPullThroughCachePolicy({
+                restrict: args.restrictRoleToCacheNamespace === true,
+                partition,
+                region,
+                accountId,
+                cacheNamespace: ns,
+                echoRegistryAccountId: echoAccountId,
+                echoRegistryRegion: echoRegion,
+            })),
         }, { parent: this });
         
         // Create the pull-through cache rule
