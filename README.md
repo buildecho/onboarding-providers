@@ -21,6 +21,12 @@ The Terraform and Pulumi modules can optionally manage the repository creation t
 | **Terraform** | ✅ Ready | [`/echo-terraform-gar-mirror`](./echo-terraform-gar-mirror) |
 | **Pulumi** | ✅ Ready | [`/echo-pulumi-gar-mirror`](./echo-pulumi-gar-mirror) |
 
+### Azure Container Registry (ACR) Artifact Cache
+
+| Tool | Status | Directory |
+|------|--------|-----------|
+| **Terraform** | 🧪 Preview (not yet applied against Azure) | [`/echo-terraform-acr-mirror`](./echo-terraform-acr-mirror) |
+
 ### Harbor Proxy Cache
 
 | Tool | Status | Directory |
@@ -50,7 +56,7 @@ Mirrors images, libraries (PyPI / npm / Maven / NuGet / Go) and OS packages
 ## Prerequisites
 
 - Echo Registry access credentials (access key name and value)
-- Target registry/platform access (AWS, GCP, Harbor, JFrog, or Nexus)
+- Target registry/platform access (AWS, Azure, GCP, Harbor, JFrog, or Nexus)
 - Appropriate permissions to create resources in your environment
 
 ## Getting Started
