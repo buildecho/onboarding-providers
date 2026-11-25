@@ -45,6 +45,7 @@ const cache = new EcrPullThroughCache("echo-cache", {
 - `cacheNamespace` (string, default: `echo`)
 - `roleName` (string, default: `echo-ecr-mirror-role`)
 - `policyName` (string, default: `echo-ecr-mirror-policy`)
+- `restrictRoleToCacheNamespace` (boolean, default: `false`): scope the pull-through role instead of `Resource: "*"`. Read, import and copy-status actions are allowed on Echo's upstream repositories and `cacheNamespace/*`; layer uploads and `PutImage` only on `cacheNamespace/*`. `ecr:GetAuthorizationToken` stays on `*` because ECR has no resource-level permissions for it.
 - `tags` (Record<string, string>, optional): tags on the IAM roles and KMS key created by the component
 
 ### Repository creation template (optional)

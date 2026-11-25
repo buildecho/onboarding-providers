@@ -23,6 +23,30 @@ locals {
 
   cache_repository_arn_pattern = "arn:${local.partition}:ecr:${local.region}:${local.account_id}:repository/${var.cache_namespace}/*"
 
+  # Actions allowed on Echo's (upstream) repositories as well as the local cache repositories.
+  # The import/copy-status actions are included because it is not documented which registry's
+  # repository ARN ECR evaluates for them in a cross-account pull; Echo's repository policy
+  # still controls what the upstream side permits.
+  pull_through_read_actions = [
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:GetDownloadUrlForLayer",
+    "ecr:BatchGetImage",
+    "ecr:BatchImportUpstreamImage",
+    "ecr:GetImageCopyStatus"
+  ]
+
+  # Write actions: only ever needed on the local cache repositories.
+  pull_through_write_actions = [
+    "ecr:InitiateLayerUpload",
+    "ecr:UploadLayerPart",
+    "ecr:CompleteLayerUpload",
+    "ecr:PutImage"
+  ]
+
+  pull_through_repository_actions = concat(local.pull_through_read_actions, local.pull_through_write_actions)
+
+  upstream_repository_arn_pattern = "arn:${local.partition}:ecr:${var.echo_registry_region}:${var.echo_registry_account_id}:repository/*"
+
   template_options_set = (
     var.encryption_type != "AES256" ||
     var.kms_key_arn != null ||
@@ -87,23 +111,32 @@ resource "aws_iam_role_policy" "ecr_pullthrough_cache" {
   name = var.policy_name
   role = aws_iam_role.ecr_access[0].id
 
-  policy = jsonencode({
+  policy = var.restrict_role_to_cache_namespace ? jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchImportUpstreamImage",
-          "ecr:GetImageCopyStatus",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PutImage"
-        ]
+        # ECR has no resource-level permissions for GetAuthorizationToken.
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = local.pull_through_read_actions
+        Resource = [local.upstream_repository_arn_pattern, local.cache_repository_arn_pattern]
+      },
+      {
+        Effect   = "Allow"
+        Action   = local.pull_through_write_actions
+        Resource = local.cache_repository_arn_pattern
+      }
+    ]
+    }) : jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = concat(["ecr:GetAuthorizationToken"], local.pull_through_repository_actions)
         Resource = "*"
       }
     ]

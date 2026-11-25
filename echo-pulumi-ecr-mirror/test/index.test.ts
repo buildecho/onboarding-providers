@@ -145,3 +145,34 @@ test("key owner component and statement builder", async () => {
     assert.equal(statement.Condition.StringEquals["kms:ViaService"], "ecr.us-east-1.amazonaws.com");
     assert.throws(() => buildEcrKmsKeyOwnerStatement({ consumerAccountId: "123" }), /12-digit/);
 });
+
+async function pullThroughPolicy(name: string, extra: Record<string, unknown>) {
+    const cache = new EcrPullThroughCache(name, { ...base, ...extra });
+    await value(cache.usageInstructions);
+    await settle();
+    const policy = ofType("aws:iam/rolePolicy:RolePolicy").find(r => r.inputs.name === "echo-ecr-mirror-policy");
+    assert.ok(policy, "pull-through cache role policy must be created");
+    return JSON.parse(policy!.inputs.policy);
+}
+
+test("pull-through role policy keeps Resource * by default", async () => {
+    const doc = await pullThroughPolicy("wild", {});
+    assert.equal(doc.Statement.length, 1);
+    assert.equal(doc.Statement[0].Resource, "*");
+    assert.ok(doc.Statement[0].Action.includes("ecr:PutImage"));
+});
+
+test("restrictRoleToCacheNamespace scopes reads to upstream+cache and writes to cache", async () => {
+    const doc = await pullThroughPolicy("scoped", { restrictRoleToCacheNamespace: true, cacheNamespace: "echohq" });
+    const cacheArn = "arn:aws:ecr:us-east-1:111111111111:repository/echohq/*";
+    const upstreamArn = "arn:aws:ecr:us-east-1:123456789012:repository/*";
+    const wildcard = doc.Statement.filter((s: any) => s.Resource === "*");
+    assert.equal(wildcard.length, 1);
+    assert.deepEqual(wildcard[0].Action, ["ecr:GetAuthorizationToken"]);
+    const reads = doc.Statement.find((s: any) => s.Action.includes("ecr:BatchGetImage"));
+    assert.deepEqual(reads.Resource, [upstreamArn, cacheArn]);
+    const writes = doc.Statement.find((s: any) => s.Action.includes("ecr:PutImage"));
+    assert.equal(writes.Resource, cacheArn);
+    assert.ok(!writes.Action.includes("ecr:BatchGetImage"));
+    assert.ok(reads.Action.includes("ecr:BatchImportUpstreamImage") && reads.Action.includes("ecr:GetImageCopyStatus"));
+});

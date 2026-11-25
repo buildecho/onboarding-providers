@@ -25,6 +25,7 @@ aws cloudformation deploy \
 - `CacheNamespacePrefix` (default: `echo`): Prefix for cached repositories
 - `IAMRoleName` (default: `echo-mirror-role`): Name of IAM role used by the cache
 - `IAMPolicyName` (default: `echo-mirror-policy`): Name of IAM policy for the role
+- `RestrictRoleToCacheNamespace` (`true`/`false`, default: `false`): scope the pull-through role instead of `Resource: '*'`. Read, import and copy-status actions are allowed on Echo's repositories and `<CacheNamespacePrefix>/*`; layer uploads and `PutImage` only on `<CacheNamespacePrefix>/*`. `ecr:GetAuthorizationToken` stays on `*` because ECR has no resource-level permissions for it.
 
 ## Outputs
 - `AccessRoleArn`: ARN of the ECR access role

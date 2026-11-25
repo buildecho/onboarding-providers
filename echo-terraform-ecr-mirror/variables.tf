@@ -60,6 +60,12 @@ variable "policy_name" {
   }
 }
 
+variable "restrict_role_to_cache_namespace" {
+  description = "When true, the pull-through cache role is scoped instead of Resource \"*\": read, import and copy-status actions apply to Echo's upstream repositories and cache_namespace/*, layer uploads and PutImage only to cache_namespace/*. ecr:GetAuthorizationToken always uses \"*\" because ECR does not support resource-level permissions for it."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "A map of tags to assign to the resources"
   type        = map(string)
