@@ -26,6 +26,7 @@ The Terraform and Pulumi modules can optionally manage the repository creation t
 | Tool | Status | Directory |
 |------|--------|-----------|
 | **Terraform** | ✅ Ready | [`/echo-terraform-acr-mirror`](./echo-terraform-acr-mirror) |
+| **Pulumi** | 🧪 Preview (not yet applied against Azure) | [`/echo-pulumi-acr-mirror`](./echo-pulumi-acr-mirror) |
 
 ### Harbor Proxy Cache
 

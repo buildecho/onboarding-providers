@@ -1,0 +1,13 @@
+name: echo-acr-mirror-default
+description: "Echo ACR artifact cache example: existing registry and Key Vault"
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+config:
+  containerRegistryId:
+    type: string
+    description: Resource ID of the existing Azure Container Registry
+  keyVaultId:
+    type: string
+    description: Resource ID of the existing Key Vault
