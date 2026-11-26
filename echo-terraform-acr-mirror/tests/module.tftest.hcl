@@ -8,7 +8,7 @@ mock_provider "azurerm" {
 
   mock_resource "azurerm_container_registry_credential_set" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.ContainerRegistry/registries/myregistry/credentialSets/echo"
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.ContainerRegistry/registries/myregistry/credentialSets/echo-registry"
       identity = {
         principal_id = "11111111-1111-1111-1111-111111111111"
         tenant_id    = "22222222-2222-2222-2222-222222222222"
@@ -135,6 +135,16 @@ run "rejects_image_with_tag" {
   }
 
   expect_failures = [var.images]
+}
+
+run "rejects_short_credential_set_name" {
+  command = plan
+
+  variables {
+    credential_set_name = "echo"
+  }
+
+  expect_failures = [var.credential_set_name]
 }
 
 run "rejects_registry_host_with_scheme" {

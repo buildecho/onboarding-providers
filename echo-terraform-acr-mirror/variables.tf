@@ -90,11 +90,13 @@ variable "echo_registry_host" {
 variable "credential_set_name" {
   description = "Name of the ACR credential set that holds the Echo sign-in."
   type        = string
-  default     = "echo"
+  default     = "echo-registry"
 
+  # ACR rejects credential set and cache rule names shorter than 5 or longer
+  # than 49 characters, or not starting with a letter.
   validation {
-    condition     = can(regex("^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$", var.credential_set_name))
-    error_message = "credential_set_name may contain only letters, digits and single hyphens."
+    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$", var.credential_set_name)) && length(var.credential_set_name) >= 5 && length(var.credential_set_name) <= 49
+    error_message = "credential_set_name must be 5-49 characters, start with a letter, and contain only letters, digits and single hyphens."
   }
 }
 

@@ -8,7 +8,7 @@ to pull Echo images through your own registry. ACR fetches an Echo image from
 The module does the same steps as the Azure CLI setup in the Echo docs:
 
 1. Stores your Images key name and value as two Key Vault secrets.
-2. Creates an ACR **credential set** (`echo`) that signs in to `reg.echohq.com`
+2. Creates an ACR **credential set** (`echo-registry`) that signs in to `reg.echohq.com`
    with those secrets, using a system-assigned managed identity.
 3. Lets that identity read the two secrets: **Key Vault Secrets User** scoped to
    each secret on RBAC vaults, or a `Get` access policy on access-policy vaults.
@@ -66,7 +66,7 @@ A runnable example is in [`examples/default`](./examples/default).
 | `images` | list(string) | required | Echo images to cache, one rule each (max 1,000 per registry) |
 | `key_vault_rbac_enabled` | bool | `true` | `false` for vaults that use access policies |
 | `target_prefix` | string | `"echo"` | ACR namespace for cached images; `""` caches at the root |
-| `credential_set_name` | string | `"echo"` | Credential set name |
+| `credential_set_name` | string | `"echo-registry"` | Credential set name (5-49 characters, ACR's limit) |
 | `key_name_secret_name` | string | `"echo-images-key-name"` | Key Vault secret for the key name |
 | `key_value_secret_name` | string | `"echo-images-key"` | Key Vault secret for the key value |
 | `echo_registry_host` | string | `"reg.echohq.com"` | Echo registry host |
@@ -89,7 +89,7 @@ each rule `echo-<image>` with other characters replaced by `-`
 
 ```bash
 # Should print Healthy. A new role assignment can take a few minutes to apply.
-az acr credential-set show --registry <registry> --name echo \
+az acr credential-set show --registry <registry> --name echo-registry \
   --query "authCredentials[0].credentialHealth.status" --output tsv
 
 az acr login --name <registry>

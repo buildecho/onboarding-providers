@@ -9,12 +9,12 @@ locals {
 
   target_prefix = var.target_prefix == "" ? "" : "${var.target_prefix}/"
 
-  # Cache rule names allow letters, digits and single hyphens only, and are
-  # limited to 50 characters, so image paths such as "bitnami/redis" or
+  # Cache rule names must be 5-49 characters of letters, digits and single
+  # hyphens, starting with a letter ("echo-" guarantees the minimum), so image paths such as "bitnami/redis" or
   # "my.image" are normalised (e.g. "echo-bitnami-redis").
   cache_rules = var.create ? {
     for image in var.images : image => {
-      name        = substr(trim(replace("echo-${image}", "/[^a-zA-Z0-9]+/", "-"), "-"), 0, 50)
+      name        = trim(substr(replace("echo-${image}", "/[^a-zA-Z0-9]+/", "-"), 0, 49), "-")
       source_repo = "${var.echo_registry_host}/${image}"
       target_repo = "${local.target_prefix}${image}"
     }
