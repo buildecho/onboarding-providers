@@ -1,4 +1,6 @@
 locals {
+  echo_registry_host = trimsuffix(trimprefix(var.echo_registry_url, "https://"), "/")
+
   # /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<name>
   registry_id_parts = split("/", var.container_registry_id)
   registry_rg       = local.registry_id_parts[4]
@@ -15,7 +17,7 @@ locals {
   cache_rules = var.create ? {
     for image in var.images : image => {
       name        = trim(substr(replace("echo-${image}", "/[^a-zA-Z0-9]+/", "-"), 0, 49), "-")
-      source_repo = "${var.echo_registry_host}/${image}"
+      source_repo = "${local.echo_registry_host}/${image}"
       target_repo = "${local.target_prefix}${image}"
     }
   } : {}
@@ -66,7 +68,7 @@ resource "azurerm_container_registry_credential_set" "echo" {
 
   name                  = var.credential_set_name
   container_registry_id = var.container_registry_id
-  login_server          = var.echo_registry_host
+  login_server          = local.echo_registry_host
 
   identity {
     type = "SystemAssigned"

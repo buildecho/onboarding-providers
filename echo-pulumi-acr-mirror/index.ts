@@ -12,7 +12,7 @@ const IMAGE_PATH = /^[a-z0-9]+([._/-][a-z0-9]+)*$/;
 const REGISTRY_ID = /^\/subscriptions\/([^/]+)\/resourceGroups\/([^/]+)\/providers\/Microsoft\.ContainerRegistry\/registries\/([^/]+)$/i;
 const KEY_VAULT_ID = /^\/subscriptions\/([^/]+)\/resourceGroups\/([^/]+)\/providers\/Microsoft\.KeyVault\/vaults\/([^/]+)$/i;
 
-export interface AcrArtifactCacheArgs {
+export interface AcrArtifactCacheInput {
     /**
      * Resource ID of the existing Azure Container Registry that will cache Echo images.
      * The registry and the Key Vault must be in the azure-native provider's subscription.
@@ -58,11 +58,24 @@ export interface AcrArtifactCacheArgs {
     /** Credential set name, 5-49 characters. @default "echo-registry" */
     credentialSetName?: string;
 
-    /** Echo registry host, without scheme. @default "reg.echohq.com" */
-    echoRegistryHost?: string;
+    /** Echo image registry URL; ACR uses its host name. @default "https://reg.echohq.com" */
+    echoRegistryUrl?: string;
 
     /** Tags for the Key Vault secrets. */
     tags?: Record<string, string>;
+}
+
+export interface AcrArtifactCacheOutputs {
+    /** Login server of the target registry. */
+    registryLoginServer: pulumi.Output<string>;
+    /** Resource ID of the Echo credential set. */
+    credentialSetId: pulumi.Output<string>;
+    /** Object ID of the credential set's managed identity. */
+    credentialSetPrincipalId: pulumi.Output<string>;
+    /** Per image, the reference to use instead of reg.echohq.com/<image>:<tag>. */
+    pullReferences: pulumi.Output<Record<string, string>>;
+    /** Commands to check the credential set and pull an image. */
+    usageInstructions: pulumi.Output<string>;
 }
 
 export interface CacheRuleSpec {
@@ -86,7 +99,7 @@ export function buildCacheRules(images: string[], registryHost: string, targetPr
 }
 
 /** Throws on inputs ACR would reject, so mistakes fail at preview rather than mid-deploy. */
-export function validateArgs(args: AcrArtifactCacheArgs): void {
+export function validateArgs(args: AcrArtifactCacheInput): void {
     const errors: string[] = [];
     if (!REGISTRY_ID.test(args.containerRegistryId)) {
         errors.push("containerRegistryId must be /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<name>");
@@ -115,8 +128,8 @@ export function validateArgs(args: AcrArtifactCacheArgs): void {
     if (prefix !== "" && !IMAGE_PATH.test(prefix)) {
         errors.push("targetPrefix must be empty or a lowercase repository path without leading or trailing slashes");
     }
-    if (!/^[a-z0-9.-]+$/.test(args.echoRegistryHost ?? "reg.echohq.com")) {
-        errors.push("echoRegistryHost must be a bare host name such as reg.echohq.com (no https://, no path)");
+    if (!/^https:\/\/[a-z0-9.-]+\/?$/.test(args.echoRegistryUrl ?? "https://reg.echohq.com")) {
+        errors.push("echoRegistryUrl must be an HTTPS URL with no path, such as https://reg.echohq.com");
     }
     if (errors.length > 0) {
         throw new Error(`AcrArtifactCache: invalid arguments:\n- ${errors.join("\n- ")}`);
@@ -136,13 +149,13 @@ export class AcrArtifactCache extends pulumi.ComponentResource {
     public readonly pullReferences: pulumi.Output<Record<string, string>>;
     public readonly usageInstructions: pulumi.Output<string>;
 
-    constructor(name: string, args: AcrArtifactCacheArgs, opts?: pulumi.ComponentResourceOptions) {
+    constructor(name: string, args: AcrArtifactCacheInput, opts?: pulumi.ComponentResourceOptions) {
         super("echo-pulumi-acr-mirror:index:AcrArtifactCache", name, args, opts);
         validateArgs(args);
 
         const [, , registryRg, registryName] = REGISTRY_ID.exec(args.containerRegistryId)!;
         const [, vaultSub, vaultRg, vaultName] = KEY_VAULT_ID.exec(args.keyVaultId)!;
-        const registryHost = args.echoRegistryHost ?? "reg.echohq.com";
+        const registryHost = (args.echoRegistryUrl ?? "https://reg.echohq.com").replace(/^https:\/\//, "").replace(/\/$/, "");
         const credentialSetName = args.credentialSetName ?? "echo-registry";
         const keyNameSecret = args.keyNameSecretName ?? "echo-images-key-name";
         const keyValueSecret = args.keyValueSecretName ?? "echo-images-key";

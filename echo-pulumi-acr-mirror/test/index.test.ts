@@ -115,7 +115,7 @@ test("cache rule names fit ACR's 5-49 character rule", () => {
 test("rejects inputs ACR would refuse", () => {
     assert.throws(() => new AcrArtifactCache("bad1", { ...base, credentialSetName: "echo" }), /credentialSetName/);
     assert.throws(() => new AcrArtifactCache("bad2", { ...base, images: ["python:3.12"] }), /image "python:3.12"/);
-    assert.throws(() => new AcrArtifactCache("bad3", { ...base, echoRegistryHost: "https://reg.echohq.com" }), /echoRegistryHost/);
+    assert.throws(() => new AcrArtifactCache("bad3", { ...base, echoRegistryUrl: "reg.echohq.com" }), /echoRegistryUrl/);
     assert.throws(() => new AcrArtifactCache("bad4", { ...base, containerRegistryId: "myregistry" }), /containerRegistryId/);
     assert.throws(() => new AcrArtifactCache("bad5", { ...base, images: [] }), /between 1 and 1000/);
 });

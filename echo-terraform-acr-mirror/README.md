@@ -57,21 +57,23 @@ A runnable example is in [`examples/default`](./examples/default).
 
 ## Inputs
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `container_registry_id` | string | required | Resource ID of the existing registry |
-| `key_vault_id` | string | required | Resource ID of the existing Key Vault |
-| `echo_image_key_name` | string (sensitive) | required | Images key name |
-| `echo_image_key_value` | string (sensitive) | required | Images key value |
-| `images` | list(string) | required | Echo images to cache, one rule each (max 1,000 per registry) |
-| `key_vault_rbac_enabled` | bool | `true` | `false` for vaults that use access policies |
-| `target_prefix` | string | `"echo"` | ACR namespace for cached images; `""` caches at the root |
-| `credential_set_name` | string | `"echo-registry"` | Credential set name (5-49 characters, ACR's limit) |
-| `key_name_secret_name` | string | `"echo-images-key-name"` | Key Vault secret for the key name |
-| `key_value_secret_name` | string | `"echo-images-key"` | Key Vault secret for the key value |
-| `echo_registry_host` | string | `"reg.echohq.com"` | Echo registry host |
-| `create` | bool | `true` | Set to `false` to create nothing |
-| `tags` | map(string) | `{}` | Tags for the Key Vault secrets |
+### Target registry and Key Vault
+- `container_registry_id` (string, required) — resource ID of the existing registry
+- `key_vault_id` (string, required) — resource ID of the existing Key Vault
+- `key_vault_rbac_enabled` (bool, default: `true`) — `false` for vaults that use access policies
+
+### Images
+- `echo_image_key_name` / `echo_image_key_value` (string, sensitive, required) — Images key
+- `images` (list(string), required) — Echo images to cache, one rule each (max 1,000 per registry)
+- `target_prefix` (string, default: `"echo"`) — ACR namespace for cached images; `""` caches at the root
+- `echo_registry_url` (string, default: `"https://reg.echohq.com"`)
+- `credential_set_name` (string, default: `"echo-registry"`) — 5-49 characters, ACR's limit
+- `key_name_secret_name` (string, default: `"echo-images-key-name"`) — Key Vault secret for the key name
+- `key_value_secret_name` (string, default: `"echo-images-key"`) — Key Vault secret for the key value
+
+### Shared
+- `create` (bool, default: `true`)
+- `tags` (map(string), optional) — tags for the Key Vault secrets
 
 Cache rule names allow only letters, digits and hyphens, so the module names
 each rule `echo-<image>` with other characters replaced by `-`
@@ -98,7 +100,7 @@ docker pull <registry>.azurecr.io/echo/python:<tag>
 
 The first pull of a tag is slower because ACR fetches it from Echo while serving it.
 
-Module tests use a mocked provider and need no Azure access:
+Module tests use a mocked provider and need no Azure access (Terraform 1.7 or later):
 
 ```bash
 terraform init -backend=false && terraform test

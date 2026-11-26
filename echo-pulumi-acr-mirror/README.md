@@ -59,20 +59,22 @@ A runnable example is in [`examples/default`](./examples/default).
 
 ## Inputs
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `containerRegistryId` | string | required | Resource ID of the existing registry |
-| `keyVaultId` | string | required | Resource ID of the existing Key Vault |
-| `echoImageKeyName` | Input<string> (secret) | required | Images key name |
-| `echoImageKeyValue` | Input<string> (secret) | required | Images key value |
-| `images` | string[] | required | Echo images to cache, one rule each (max 1,000 per registry) |
-| `keyVaultRbacEnabled` | boolean | `true` | `false` for vaults that use access policies |
-| `targetPrefix` | string | `"echo"` | ACR namespace for cached images; `""` caches at the root |
-| `credentialSetName` | string | `"echo-registry"` | Credential set name (5-49 characters, ACR's limit) |
-| `keyNameSecretName` | string | `"echo-images-key-name"` | Key Vault secret for the key name |
-| `keyValueSecretName` | string | `"echo-images-key"` | Key Vault secret for the key value |
-| `echoRegistryHost` | string | `"reg.echohq.com"` | Echo registry host |
-| `tags` | Record<string, string> | `{}` | Tags for the Key Vault secrets |
+### Target registry and Key Vault
+- `containerRegistryId` (string, required) — resource ID of the existing registry
+- `keyVaultId` (string, required) — resource ID of the existing Key Vault
+- `keyVaultRbacEnabled` (boolean, default: `true`) — `false` for vaults that use access policies
+
+### Images
+- `echoImageKeyName` / `echoImageKeyValue` (Input<string>, secret, required) — Images key
+- `images` (string[], required) — Echo images to cache, one rule each (max 1,000 per registry)
+- `targetPrefix` (string, default: `"echo"`) — ACR namespace for cached images; `""` caches at the root
+- `echoRegistryUrl` (string, default: `"https://reg.echohq.com"`)
+- `credentialSetName` (string, default: `"echo-registry"`) — 5-49 characters, ACR's limit
+- `keyNameSecretName` (string, default: `"echo-images-key-name"`) — Key Vault secret for the key name
+- `keyValueSecretName` (string, default: `"echo-images-key"`) — Key Vault secret for the key value
+
+### Shared
+- `tags` (Record<string, string>, optional) — tags for the Key Vault secrets
 
 Invalid inputs fail at `pulumi preview`. Cache rule names are `echo-<image>` with other
 characters replaced by `-` (`bitnami/redis` → `echo-bitnami-redis`).

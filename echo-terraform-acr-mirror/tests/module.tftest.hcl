@@ -147,12 +147,12 @@ run "rejects_short_credential_set_name" {
   expect_failures = [var.credential_set_name]
 }
 
-run "rejects_registry_host_with_scheme" {
+run "rejects_registry_url_without_https" {
   command = plan
 
   variables {
-    echo_registry_host = "https://reg.echohq.com"
+    echo_registry_url = "reg.echohq.com"
   }
 
-  expect_failures = [var.echo_registry_host]
+  expect_failures = [var.echo_registry_url]
 }

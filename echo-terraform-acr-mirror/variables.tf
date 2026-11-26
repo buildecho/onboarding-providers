@@ -76,14 +76,14 @@ variable "key_value_secret_name" {
 # Artifact cache
 # ---------------------------------------------------------------------------
 
-variable "echo_registry_host" {
-  description = "Host name of the Echo image registry (no scheme)."
+variable "echo_registry_url" {
+  description = "URL of the Echo image registry. ACR uses its host name."
   type        = string
-  default     = "reg.echohq.com"
+  default     = "https://reg.echohq.com"
 
   validation {
-    condition     = can(regex("^[a-z0-9.-]+$", var.echo_registry_host))
-    error_message = "echo_registry_host must be a bare host name such as reg.echohq.com (no https://, no path)."
+    condition     = can(regex("^https://[a-z0-9.-]+/?$", var.echo_registry_url))
+    error_message = "echo_registry_url must be an HTTPS URL with no path, such as https://reg.echohq.com."
   }
 }
 
