@@ -23,9 +23,12 @@ Images only: ACR artifact cache does not proxy PyPI, npm or Maven.
   `azure-native` provider is configured for.
 - The identity running Pulumi needs:
   - **Contributor** on the container registry, to create the credential set and cache rules.
-  - **Contributor** or **Key Vault Contributor** on the Key Vault. The secrets are written
-    through the Azure Resource Manager API, so data-plane roles such as Key Vault Secrets
-    Officer are not enough on their own.
+  - **Contributor** or **Key Vault Contributor** on the Key Vault, to create and update the
+    secrets (`azure-native` writes them through the Azure Resource Manager API).
+  - **Key Vault Secrets Officer** on the Key Vault, to delete the secrets on `pulumi destroy`
+    or when a secret name changes. Azure has no Resource Manager API for deleting a secret,
+    so `azure-native` deletes it through Key Vault itself, which needs this data-plane role
+    on RBAC vaults (or the `Delete` secret permission on access-policy vaults).
   - **Owner**, **User Access Administrator** or **Role Based Access Control Administrator**
     on the Key Vault, to grant the credential set access to the secrets (RBAC vaults only).
 
@@ -96,6 +99,15 @@ docker pull <registry>.azurecr.io/echo/python:<tag>
 Unit tests use Pulumi mocks and need no Azure access: `npm install && npm test`.
 
 ## Troubleshooting
+
+- **`pulumi destroy` fails on the secrets with `Please specify only one of subscription and tenant, not both`**:
+  with Azure CLI sign-in, `azure-native` asks `az` for a Key Vault token with both
+  `--subscription` and `--tenant`, which recent Azure CLI versions reject (seen with 2.91.0).
+  Creating resources isn't affected. Either sign in with a service principal or OIDC
+  (`ARM_CLIENT_ID` and friends, as in CI), or remove `azure-native:subscriptionId` from the
+  stack config and select the subscription with `az account set --subscription <id>` instead.
+- **`pulumi destroy` fails on the secrets with `403 ForbiddenByRbac`**: the identity running
+  Pulumi needs **Key Vault Secrets Officer** on the vault. See Prerequisites.
 
 - **Credential set shows `Unhealthy`**: wait a few minutes for the role assignments to apply,
   then check that the secrets hold a valid Images key that hasn't been revoked.
