@@ -1,0 +1,17 @@
+{
+  "name": "echo-pulumi-acr-mirror",
+  "description": "Pulumi component for setting up Azure Container Registry artifact cache to integrate with Echo registry",
+  "homepage": "https://github.com/buildecho/onboarding-providers#readme",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p examples/tsconfig.typecheck.json",
+    "test": "tsc -p tsconfig.test.json && node --test bin-test/test/index.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/azure-native": "^3.0.0",
+    "@pulumi/pulumi": "^3.113.0"
+  }
+}

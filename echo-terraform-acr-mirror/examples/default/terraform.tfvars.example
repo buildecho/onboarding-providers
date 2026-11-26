@@ -1,0 +1,8 @@
+subscription_id       = "00000000-0000-0000-0000-000000000000"
+container_registry_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.ContainerRegistry/registries/myregistry"
+key_vault_id          = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.KeyVault/vaults/my-vault"
+images                = ["python", "node", "nginx"]
+
+# Pass the key through the environment rather than this file:
+#   export TF_VAR_echo_image_key_name=...
+#   export TF_VAR_echo_image_key_value=...

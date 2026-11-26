@@ -7,3 +7,4 @@ sdks
 terraform.tfvars
 bin-test
 echo-pulumi-ecr-mirror/examples/*/Pulumi.*.yaml
+echo-pulumi-acr-mirror/examples/*/Pulumi.*.yaml
